@@ -37,7 +37,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> fetchImage() async {
     try {
-      final res = await http.get(Uri.parse("http://localhost:8000/photo"));
+      final res = await http.get(Uri.parse("http://10.0.2.2:8000/photo"));
       if (res.statusCode != 200) {
         setState(() => error = "API error: ${res.statusCode}");
         return;
