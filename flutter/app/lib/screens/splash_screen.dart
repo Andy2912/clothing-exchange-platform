@@ -14,8 +14,8 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {//initState wordt 1 keer uitgevoerd wanneer het scherm opstart
     super.initState();
 
-    // Wacht 7 seconden en ga dan naar login
-    Timer(const Duration(seconds: 7), () {
+    // Wacht 5 seconden en ga dan naar login
+    Timer(const Duration(seconds: 5), () {
       Navigator.pushReplacementNamed(context, '/login');
     });
   }
