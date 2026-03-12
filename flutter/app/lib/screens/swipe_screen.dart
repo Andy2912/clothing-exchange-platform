@@ -1,13 +1,70 @@
 import 'package:flutter/material.dart';
 import '../widgets/backend_image.dart';
 
-class SwipeScreen extends StatelessWidget {
+class SwipeScreen extends StatefulWidget {
   const SwipeScreen({super.key});
 
-  // Zelfde “theme” kleuren als je andere screens
+  @override
+  State<SwipeScreen> createState() => _SwipeScreenState();
+}
+
+class _SwipeScreenState extends State<SwipeScreen> {
   static const bgStart = Colors.white;
   static const bgEnd = Color.fromARGB(255, 196, 129, 255);
   static const accent = Color.fromARGB(255, 171, 0, 193);
+
+final items = [
+  {
+    'name': 'Plaid Flannel Shirt',
+    'details': 'Carhartt, Size M. Gently used.',
+    'owner': 'by Bruce',
+  },
+  {
+    'name': 'Vintage Denim Jacket',
+    'details': 'Levi\'s, Size L. Good condition.',
+    'owner': 'by Emma',
+  },
+  {
+    'name': 'Oversized Hoodie',
+    'details': 'Nike, Size XL. Like new.',
+    'owner': 'by Alex',
+  },
+];
+
+int currentIndex = 0;
+  double dragX = 0;
+
+  void likeItem() {
+    print("Liked!");
+    setState(() {
+      dragX = 0;
+      if (currentIndex < items.length - 1) {
+      currentIndex++;
+    }
+    });
+  }
+
+  void dislikeItem() {
+    print("Disliked!");
+    setState(() {
+      dragX = 0;
+      if (currentIndex < items.length - 1) {
+      currentIndex++;
+    }
+    });
+  }
+
+  void handleDragEnd() {
+    if (dragX > 100) {
+      likeItem();
+    } else if (dragX < -100) {
+      dislikeItem();
+    } else {
+      setState(() {
+        dragX = 0;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +94,7 @@ class SwipeScreen extends StatelessWidget {
                       onPressed: () {
                         Navigator.pushReplacementNamed(context, '/login');
                       },
-                      icon: const Icon(Icons.refresh, color: accent),
+                      icon: const Icon(Icons.logout, color: accent),
                     ),
                   ],
                 ),
@@ -45,16 +102,35 @@ class SwipeScreen extends StatelessWidget {
 
               // Card area
               Expanded(
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 420),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
-                      child: _DemoCard(),
-                    ),
-                  ),
-                ),
-              ),
+  child: Center(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: GestureDetector(
+        onHorizontalDragUpdate: (details) {
+          setState(() {
+            dragX += details.delta.dx;
+          });
+        },
+        onHorizontalDragEnd: (details) {
+          handleDragEnd();
+        },
+        child: Transform.translate(
+  offset: Offset(dragX, 0),
+  child: Transform.rotate( angle: dragX / 500,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 420),
+      child: _DemoCard(
+        name: items[currentIndex]['name']!,
+        details: items[currentIndex]['details']!,
+        owner: items[currentIndex]['owner']!,
+),
+    ),
+  ),
+),
+      ),
+    ),
+  ),
+),
 
               // Buttons row (nog zonder actie)
               Padding(
@@ -65,13 +141,13 @@ class SwipeScreen extends StatelessWidget {
                     _CircleActionButton(
                       icon: Icons.close,
                       color: Colors.redAccent,
-                      onTap: () {},
+                      onTap: dislikeItem,
                     ),
                     const SizedBox(width: 26),
                     _CircleActionButton(
                       icon: Icons.favorite,
                       color: Colors.green,
-                      onTap: () {},
+                      onTap: likeItem,
                     ),
                   ],
                 ),
@@ -85,7 +161,15 @@ class SwipeScreen extends StatelessWidget {
 }
 
 class _DemoCard extends StatelessWidget {
-  const _DemoCard();
+  final String name;
+  final String details;
+  final String owner;
+
+  const _DemoCard({
+    required this.name,
+    required this.details,
+    required this.owner,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -105,27 +189,30 @@ class _DemoCard extends StatelessWidget {
 
           // Info onderaan
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'Plaid Flannel Shirt',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                ),
-                SizedBox(height: 6),
-                Text(
-                  'Carhartt, Size M. Gently used.',
-                  style: TextStyle(color: Colors.black54),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'by Bruce',
-                  style: TextStyle(color: Colors.black45, fontStyle: FontStyle.italic),
-                ),
-              ],
-            ),
-          ),
+  padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        name,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+      ),
+      const SizedBox(height: 6),
+      Text(
+        details,
+        style: const TextStyle(color: Colors.black54),
+      ),
+      const SizedBox(height: 8),
+      Text(
+        owner,
+        style: const TextStyle(
+          color: Colors.black45,
+          fontStyle: FontStyle.italic,
+        ),
+      ),
+    ],
+  ),
+),
         ],
       ),
     );
