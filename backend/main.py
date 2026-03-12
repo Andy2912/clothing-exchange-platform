@@ -1,6 +1,6 @@
 import base64
 from pathlib import Path
-
+from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -9,7 +9,7 @@ from db import engine
 from sqlalchemy import text
 
 app = FastAPI()
-
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 # CORS: laat Flutter Web toe
 app.add_middleware(
     CORSMiddleware,

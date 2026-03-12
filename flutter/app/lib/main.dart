@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/swipe_screen.dart';
+import 'screens/matches_screen.dart';
+import 'screens/profile_screen.dart';
 
 void main() => runApp(const SwipeSwapApp());
 
@@ -23,6 +25,8 @@ class SwipeSwapApp extends StatelessWidget {
         '/': (_) => const SplashScreen(),
         '/login': (_) => const LoginScreen(),
         '/swipe': (_) => const SwipeScreen(),
+        '/matches': (_) => const MatchesScreen(),
+        '/profile': (_) => const ProfileScreen(),
       },
     );
   }

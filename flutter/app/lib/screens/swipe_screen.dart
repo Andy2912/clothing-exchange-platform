@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import '../widgets/backend_image.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../models/clothing_item.dart';
+import '../widgets/app_bottom_nav.dart';
 
 class SwipeScreen extends StatefulWidget {
   const SwipeScreen({super.key});
@@ -13,28 +16,32 @@ class _SwipeScreenState extends State<SwipeScreen> {
   static const bgEnd = Color.fromARGB(255, 196, 129, 255);
   static const accent = Color.fromARGB(255, 171, 0, 193);
 
-final items = [
-  {
-    'name': 'Plaid Flannel Shirt',
-    'details': 'Carhartt, Size M. Gently used.',
-    'owner': 'by Bruce',
-  },
-  {
-    'name': 'Vintage Denim Jacket',
-    'details': 'Levi\'s, Size L. Good condition.',
-    'owner': 'by Emma',
-  },
-  {
-    'name': 'Oversized Hoodie',
-    'details': 'Nike, Size XL. Like new.',
-    'owner': 'by Alex',
-  },
-];
+Future<void> fetchItems() async {
+  final response = await http.get(
+    Uri.parse('http://10.0.2.2:8000/items'),
+  );
+
+  if (response.statusCode == 200) {
+    final List<dynamic> data = jsonDecode(response.body);
+
+    setState(() {
+      items = data.map((item) => ClothingItem.fromJson(item)).toList();
+      isLoading = false;
+    });
+  } else {
+    throw Exception('Failed to load items');
+  }
+}
+
+List<ClothingItem> items = [];
+bool isLoading = true;
 
 int currentIndex = 0;
   double dragX = 0;
 
   void likeItem() {
+    if (items.isEmpty) return;
+
     print("Liked!");
     setState(() {
       dragX = 0;
@@ -45,6 +52,7 @@ int currentIndex = 0;
   }
 
   void dislikeItem() {
+    if (items.isEmpty) return;
     print("Disliked!");
     setState(() {
       dragX = 0;
@@ -66,6 +74,11 @@ int currentIndex = 0;
     }
   }
 
+  @override
+  void initState() {
+  super.initState();
+  fetchItems();
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,29 +118,42 @@ int currentIndex = 0;
   child: Center(
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: GestureDetector(
-        onHorizontalDragUpdate: (details) {
-          setState(() {
-            dragX += details.delta.dx;
-          });
-        },
-        onHorizontalDragEnd: (details) {
-          handleDragEnd();
-        },
-        child: Transform.translate(
-  offset: Offset(dragX, 0),
-  child: Transform.rotate( angle: dragX / 500,
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 420),
-      child: _DemoCard(
-        name: items[currentIndex]['name']!,
-        details: items[currentIndex]['details']!,
-        owner: items[currentIndex]['owner']!,
+      child: isLoading
+    ? const Center(child: CircularProgressIndicator())
+    : items.isEmpty
+        ? const Center(
+            child: Text(
+              'No items available',
+              style: TextStyle(fontSize: 18, color: Colors.black54),
+            ),
+          )
+        : GestureDetector(
+            onHorizontalDragUpdate: (details) {
+              setState(() {
+                dragX += details.delta.dx;
+              });
+            },
+            onHorizontalDragEnd: (details) {
+              handleDragEnd();
+            },
+            child: Transform.translate(
+              offset: Offset(dragX, 0),
+              child: Transform.rotate(
+                angle: dragX / 500,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: _DemoCard(
+  name: items[currentIndex].name,
+  details:
+      '${items[currentIndex].brand}, Size ${items[currentIndex].size}. ${items[currentIndex].conditionRating}.',
+  owner: 'from database',
+  imageUrl: items[currentIndex].imageUrl,
 ),
-    ),
-  ),
-),
-      ),
+
+                ),
+              ),
+            ),
+          ),
     ),
   ),
 ),
@@ -156,6 +182,7 @@ int currentIndex = 0;
           ),
         ),
       ),
+      bottomNavigationBar: const AppBottomNav(currentIndex: 0),
     );
   }
 }
@@ -164,11 +191,13 @@ class _DemoCard extends StatelessWidget {
   final String name;
   final String details;
   final String owner;
+  final String imageUrl;
 
   const _DemoCard({
     required this.name,
     required this.details,
     required this.owner,
+    required this.imageUrl,
   });
 
   @override
@@ -183,9 +212,21 @@ class _DemoCard extends StatelessWidget {
         children: [
           // Foto (placeholder)
           AspectRatio(
-            aspectRatio: 3 / 4,
-            child: const BackendImage(),
-          ),
+  aspectRatio: 3 / 4,
+  child: Image.network(
+    imageUrl,
+    fit: BoxFit.cover,
+    loadingBuilder: (context, child, progress) {
+      if (progress == null) return child;
+      return const Center(child: CircularProgressIndicator());
+    },
+    errorBuilder: (context, error, stackTrace) {
+      return const Center(
+        child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+      );
+    },
+  ),
+),
 
           // Info onderaan
           Padding(
