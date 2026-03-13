@@ -99,7 +99,7 @@ int currentIndex = 0;
                 child: Row(
                   children: [
                     const Text(
-                      'Swipe',
+                      'SwipeSwap',
                       style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: accent),
                     ),
                     const Spacer(),
