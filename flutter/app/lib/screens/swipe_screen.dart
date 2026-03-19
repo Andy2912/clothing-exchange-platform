@@ -16,6 +16,27 @@ class _SwipeScreenState extends State<SwipeScreen> {
   static const bgEnd = Color.fromARGB(255, 196, 129, 255);
   static const accent = Color.fromARGB(255, 171, 0, 193);
 
+Future<void> sendSwipe({
+  required int clothId,
+  required String action,
+}) async {
+  final response = await http.post(
+    Uri.parse('http://10.0.2.2:8000/swipe'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'swiper_user_id': 1,
+      'swiped_cloth_id': clothId,
+      'action': action,
+    }),
+  );
+
+  if (response.statusCode != 200) {
+    throw Exception('Failed to save swipe');
+  }
+
+  print(response.body);
+}
+
 Future<void> fetchItems() async {
   final response = await http.get(
     Uri.parse('http://10.0.2.2:8000/items'),
@@ -39,30 +60,43 @@ bool isLoading = true;
 int currentIndex = 0;
   double dragX = 0;
 
-  void likeItem() {
-    if (items.isEmpty) return;
+  Future<void> likeItem() async {
+  if (items.isEmpty) return;
 
-    print("Liked!");
-    setState(() {
-      dragX = 0;
-      if (currentIndex < items.length - 1) {
+  final currentItem = items[currentIndex];
+
+  await sendSwipe(
+    clothId: currentItem.clothId,
+    action: 'like',
+  );
+
+  setState(() {
+    dragX = 0;
+    if (currentIndex < items.length - 1) {
       currentIndex++;
     }
-    });
-  }
+  });
+}
 
-  void dislikeItem() {
-    if (items.isEmpty) return;
-    print("Disliked!");
-    setState(() {
-      dragX = 0;
-      if (currentIndex < items.length - 1) {
+  Future<void> dislikeItem() async {
+  if (items.isEmpty) return;
+
+  final currentItem = items[currentIndex];
+
+  await sendSwipe(
+    clothId: currentItem.clothId,
+    action: 'dislike',
+  );
+
+  setState(() {
+    dragX = 0;
+    if (currentIndex < items.length - 1) {
       currentIndex++;
     }
-    });
-  }
+  });
+}
 
-  void handleDragEnd() {
+  Future<void> handleDragEnd() async {
     if (dragX > 100) {
       likeItem();
     } else if (dragX < -100) {
@@ -133,8 +167,8 @@ int currentIndex = 0;
                 dragX += details.delta.dx;
               });
             },
-            onHorizontalDragEnd: (details) {
-              handleDragEnd();
+            onHorizontalDragEnd: (details) async {
+              await handleDragEnd();  
             },
             child: Transform.translate(
               offset: Offset(dragX, 0),
@@ -167,13 +201,17 @@ int currentIndex = 0;
                     _CircleActionButton(
                       icon: Icons.close,
                       color: Colors.redAccent,
-                      onTap: dislikeItem,
+                      onTap: () async {
+                        await dislikeItem();
+                      },
                     ),
                     const SizedBox(width: 26),
                     _CircleActionButton(
                       icon: Icons.favorite,
                       color: Colors.green,
-                      onTap: likeItem,
+                      onTap: () async {
+                        await likeItem();
+                      },
                     ),
                   ],
                 ),

@@ -1,18 +1,87 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import '../models/match_item.dart';
 import '../widgets/app_bottom_nav.dart';
 
-class MatchesScreen extends StatelessWidget {
+
+
+class MatchesScreen extends StatefulWidget {
   const MatchesScreen({super.key});
+
+@override
+  State<MatchesScreen> createState() => _MatchesScreenState();
+}
+
+class _MatchesScreenState extends State<MatchesScreen> {
+  List<MatchItem> matches = [];
+  bool isLoading = true;
+
+  Future<void> fetchMatches() async {
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:8000/matches/1'),
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+
+      setState(() {
+        matches = data.map((item) => MatchItem.fromJson(item)).toList();
+        isLoading = false;
+      });
+    } else {
+      throw Exception('Failed to load matches');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchMatches();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: const Center(
-        child: Text(
-          "Matches screen",
-          style: TextStyle(fontSize: 24),
-        ),
+      appBar: AppBar(
+        title: const Text('Matches'),
       ),
+       body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : matches.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No matches yet',
+                    style: TextStyle(fontSize: 20),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: matches.length,
+                  itemBuilder: (context, index) {
+                    final match = matches[index];
+
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(255, 237, 237, 237),
+                        border: Border.all(color: Colors.purple, width: 2),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundImage: NetworkImage(match.matchedItemImageUrl),
+                        ),
+                        title: Text(match.otherUsername),
+                        subtitle: Text(match.matchedItemName),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          // open chat screen
+                        },
+                      ),
+                    );
+                  },
+                ),
       bottomNavigationBar: const AppBottomNav(currentIndex: 1),
     );
   }
