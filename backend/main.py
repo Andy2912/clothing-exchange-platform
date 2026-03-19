@@ -1,4 +1,5 @@
 import base64
+from pydantic import BaseModel
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
@@ -7,6 +8,11 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from db import engine
 from sqlalchemy import text
+
+class SwipeRequest(BaseModel):
+    swiper_user_id: int
+    swiped_cloth_id: int
+    action: str # "like" or "dislike"
 
 app = FastAPI()
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
@@ -76,3 +82,199 @@ def get_items():
             })
 
         return items
+    
+@app.post("/swipe")
+def create_swipe(swipe: SwipeRequest):
+    with engine.connect() as connection:
+        # 1. Prevent duplicate swipes on the same item
+        existing_swipe = connection.execute(text("""
+            SELECT swipe_id
+            FROM swipes
+            WHERE swiper_user_id = :swiper_user_id
+              AND swiped_cloth_id = :swiped_cloth_id
+        """), {
+            "swiper_user_id": swipe.swiper_user_id,
+            "swiped_cloth_id": swipe.swiped_cloth_id
+        }).fetchone()
+
+        if existing_swipe:
+            return {
+                "message": "You already swiped on this item",
+                "matched": False
+            }
+
+        # 2. Save the swipe
+        connection.execute(text("""
+            INSERT INTO swipes (swiper_user_id, swiped_cloth_id, action)
+            VALUES (:swiper_user_id, :swiped_cloth_id, :action)
+        """), {
+            "swiper_user_id": swipe.swiper_user_id,
+            "swiped_cloth_id": swipe.swiped_cloth_id,
+            "action": swipe.action
+        })
+
+        connection.commit()
+
+        # 3. If it is not a like, stop here
+        if swipe.action != "like":
+            return {
+                "message": "Swipe saved",
+                "matched": False
+            }
+
+        # 4. Find owner of liked item
+        cloth_owner = connection.execute(text("""
+            SELECT user_id
+            FROM clothes
+            WHERE cloth_id = :cloth_id
+        """), {
+            "cloth_id": swipe.swiped_cloth_id
+        }).fetchone()
+
+        if not cloth_owner:
+            return {
+                "message": "Cloth not found",
+                "matched": False
+            }
+
+        owner_user_id = cloth_owner.user_id
+
+        # 5. Prevent matching with yourself
+        if owner_user_id == swipe.swiper_user_id:
+            return {
+                "message": "You cannot match with your own item",
+                "matched": False
+            }
+
+        # 6. Check if owner already liked one of swiper's items
+        reverse_like = connection.execute(text("""
+            SELECT TOP 1 s.swiped_cloth_id
+            FROM swipes s
+            JOIN clothes c ON c.cloth_id = s.swiped_cloth_id
+            WHERE s.swiper_user_id = :owner_user_id
+              AND s.action = 'like'
+              AND c.user_id = :swiper_user_id
+        """), {
+            "owner_user_id": owner_user_id,
+            "swiper_user_id": swipe.swiper_user_id
+        }).fetchone()
+
+        if not reverse_like:
+            return {
+                "message": "Swipe saved",
+                "matched": False
+            }
+
+        reverse_cloth_id = reverse_like.swiped_cloth_id
+
+        # 7. Store users in fixed order
+        user1_id = min(swipe.swiper_user_id, owner_user_id)
+        user2_id = max(swipe.swiper_user_id, owner_user_id)
+
+        # 8. Assign cloth IDs according to user order
+        if user1_id == swipe.swiper_user_id:
+            cloth1_id = reverse_cloth_id
+            cloth2_id = swipe.swiped_cloth_id
+        else:
+            cloth1_id = swipe.swiped_cloth_id
+            cloth2_id = reverse_cloth_id
+
+        # 9. Check if match already exists
+        existing_match = connection.execute(text("""
+            SELECT match_id
+            FROM matches
+            WHERE user1_id = :user1_id
+              AND user2_id = :user2_id
+        """), {
+            "user1_id": user1_id,
+            "user2_id": user2_id
+        }).fetchone()
+
+        if existing_match:
+            return {
+                "message": "Swipe saved, match already exists",
+                "matched": True,
+                "match_id": existing_match.match_id
+            }
+
+        # 10. Create the match
+        connection.execute(text("""
+            INSERT INTO matches (user1_id, user2_id, cloth1_id, cloth2_id, status)
+            VALUES (:user1_id, :user2_id, :cloth1_id, :cloth2_id, 'active')
+        """), {
+            "user1_id": user1_id,
+            "user2_id": user2_id,
+            "cloth1_id": cloth1_id,
+            "cloth2_id": cloth2_id
+        })
+
+        connection.commit()
+
+        new_match = connection.execute(text("""
+            SELECT TOP 1 match_id
+            FROM matches
+            WHERE user1_id = :user1_id
+              AND user2_id = :user2_id
+            ORDER BY match_id DESC
+        """), {
+            "user1_id": user1_id,
+            "user2_id": user2_id
+        }).fetchone()
+
+        return {
+            "message": "It's a match!",
+            "matched": True,
+            "match_id": new_match.match_id
+        }
+        
+@app.get("/matches/{user_id}")
+def get_matches(user_id: int):
+    with engine.connect() as connection:
+        result = connection.execute(text("""
+            SELECT
+                m.match_id,
+                CASE
+                    WHEN m.user1_id = :user_id THEN m.user2_id
+                    ELSE m.user1_id
+                END AS other_user_id,
+
+                u.username AS other_username,
+
+                CASE
+                    WHEN m.user1_id = :user_id THEN c2.name
+                    ELSE c1.name
+                END AS matched_item_name,
+
+                CASE
+                    WHEN m.user1_id = :user_id THEN c2.image_url
+                    ELSE c1.image_url
+                END AS matched_item_image_url,
+
+                m.status
+            FROM matches m
+            JOIN users u
+                ON u.user_id = CASE
+                    WHEN m.user1_id = :user_id THEN m.user2_id
+                    ELSE m.user1_id
+                END
+            JOIN clothes c1 ON c1.cloth_id = m.cloth1_id
+            JOIN clothes c2 ON c2.cloth_id = m.cloth2_id
+            WHERE m.user1_id = :user_id
+               OR m.user2_id = :user_id
+            ORDER BY m.match_id DESC
+        """), {
+            "user_id": user_id
+        })
+
+        matches = []
+        for row in result:
+            matches.append({
+                "match_id": row.match_id,
+                "other_user_id": row.other_user_id,
+                "other_username": row.other_username,
+                "matched_item_name": row.matched_item_name,
+                "matched_item_image_url": row.matched_item_image_url,
+                "status": row.status
+            })
+
+        return matches
