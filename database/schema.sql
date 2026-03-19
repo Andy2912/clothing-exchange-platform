@@ -1,6 +1,6 @@
 /*add database admin for safety?
-users: gender, address, last_login,is_active, banned
-clothes: need to show multiple pictures(how?), color, material, for which gender
+users: last_login, banned, phone nr
+clothes: need to show multiple pictures(how?)
 if disliked -> make sure items dont show up anymore*/
 
 
@@ -17,63 +17,72 @@ GO
 -- 1. USERS
 -- =============================================
 CREATE TABLE users (
-    user_id         INT IDENTITY(1,1) PRIMARY KEY,
-    username        VARCHAR(50)   UNIQUE NOT NULL,
-    email           VARCHAR(100)  UNIQUE NOT NULL,
-    password_hash   VARCHAR(255)  NOT NULL,
-    city            VARCHAR(100)  NULL,
-    country         VARCHAR(100)  NULL,
-    profile_pic_url VARCHAR(255)  NULL,
-    bio             VARCHAR(MAX)  NULL,
-    created_at      DATETIME2(0)  NOT NULL DEFAULT GETDATE(),
-    updated_at      DATETIME2(0)  NOT NULL DEFAULT GETDATE()
+    user_id         INT IDENTITY(1,1) PRIMARY KEY,
+    username        VARCHAR(50)   UNIQUE NOT NULL,
+    email           VARCHAR(100)  UNIQUE NOT NULL,
+    password_hash   VARCHAR(255)  NOT NULL,
+    last_login      DATETIME2(0)  NULL,
+    is_active       BIT           NOT NULL DEFAULT 1,
+    gender          CHAR(1)   NULL,
+    country         VARCHAR(100)  NULL,
+    city            VARCHAR(100)  NULL,
+    postal_code     VARCHAR(20)   NULL,
+    street_address  VARCHAR(255) NULL,     -- for main address
+    street_address2 VARCHAR(255) NULL,     -- for apartment/suite numbers
+    profile_pic_url VARCHAR(255)  NULL,
+    bio             VARCHAR(MAX)  NULL,
+    created_at      DATETIME2(0)  NOT NULL DEFAULT GETDATE(),
+    updated_at      DATETIME2(0)  NOT NULL DEFAULT GETDATE()
 );
 GO
 -- =============================================
 -- 2. CLOTHING ITEMS
 -- =============================================
 CREATE TABLE clothes (
-    cloth_id         INT IDENTITY(1,1) PRIMARY KEY,
-    user_id          INT          NOT NULL,
-    name             VARCHAR(100) NOT NULL,
-    description      VARCHAR(MAX) NULL,
-    image_url        VARCHAR(255) NULL,
-    category         VARCHAR(50)  NULL,     -- e.g. 'jackets', 'shoes', 'dresses'
-    brand            VARCHAR(50)  NULL,
-    size             VARCHAR(20)  NULL,     -- e.g. 'M', '42', 'US 8'
-    condition_rating VARCHAR(20)  NULL
-        CONSTRAINT CHK_clothes_condition
-        CHECK (condition_rating IN ('new', 'like_new', 'good', 'worn', 'damaged')),
-    estimated_value  DECIMAL(10,2) NULL,
-    is_available     BIT          NOT NULL DEFAULT 1,
-    created_at       DATETIME2(0) NOT NULL DEFAULT GETDATE(),
-    updated_at       DATETIME2(0) NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT FK_clothes_users
-        FOREIGN KEY (user_id) REFERENCES users(user_id)
-        ON DELETE CASCADE           -- delete clothes when user is deleted
-        ON UPDATE NO ACTION
+    cloth_id         INT IDENTITY(1,1) PRIMARY KEY,
+    user_id          INT          NOT NULL,
+    name             VARCHAR(100) NOT NULL,
+    description      VARCHAR(MAX) NULL,
+    image_url        VARCHAR(255) NULL,
+    category         VARCHAR(50)  NULL,     -- e.g. 'jackets', 'hoodies', 'pants', 'shoes'
+    brand            VARCHAR(50)  NULL,
+    size             VARCHAR(20)  NULL,
+    color            VARCHAR(30)  NULL,
+    material         VARCHAR(50)  NULL,
+    gender           CHAR(1)   NULL,        -- e.g. 'M', 'F', 'U' for unisex
+    condition_rating VARCHAR(20)  NULL
+        CONSTRAINT CHK_clothes_condition
+        CHECK (condition_rating IN ('new', 'like_new', 'good', 'worn', 'damaged')),
+    estimated_value  DECIMAL(10,2) NULL,
+    is_available     BIT          NOT NULL DEFAULT 1,
+    created_at       DATETIME2(0) NOT NULL DEFAULT GETDATE(),
+    updated_at       DATETIME2(0) NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT FK_clothes_users
+        FOREIGN KEY (user_id) REFERENCES users(user_id)
+        ON DELETE CASCADE           -- delete clothes when user is deleted
+        ON UPDATE NO ACTION
 );
 GO
 -- =============================================
 -- 3. SWIPES / LIKES
 -- =============================================
 CREATE TABLE swipes (
-    swipe_id        INT IDENTITY(1,1) PRIMARY KEY,
-    swiper_user_id  INT          NOT NULL,
-    swiped_cloth_id INT          NOT NULL,
-    action          VARCHAR(10)  NOT NULL
-        CONSTRAINT CHK_swipes_action
-        CHECK (action IN ('like', 'dislike', 'super_like')),  -- room for future features
-    created_at      DATETIME2(0) NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT UQ_swipes UNIQUE (swiper_user_id, swiped_cloth_id),
-    CONSTRAINT FK_swipes_swiper
-        FOREIGN KEY (swiper_user_id) REFERENCES users(user_id)
-        ON DELETE NO ACTION         -- prevent cascade cycles
-        ON UPDATE NO ACTION,
-    CONSTRAINT FK_swipes_cloth
-        FOREIGN KEY (swiped_cloth_id) REFERENCES clothes(cloth_id)
-        ON DELETE CASCADE           -- swipe disappears if item is deleted
-        ON UPDATE NO ACTION
+    swipe_id        INT IDENTITY(1,1) PRIMARY KEY,
+    swiper_user_id  INT          NOT NULL,
+    swiped_cloth_id INT          NOT NULL,
+    action          VARCHAR(10)  NOT NULL
+        CONSTRAINT CHK_swipes_action
+        CHECK (action IN ('like', 'dislike', 'super_like')),  -- room for future features
+    created_at      DATETIME2(0) NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT UQ_swipes UNIQUE (swiper_user_id, swiped_cloth_id),
+    CONSTRAINT FK_swipes_swiper
+        FOREIGN KEY (swiper_user_id) REFERENCES users(user_id)
+        ON DELETE NO ACTION         -- prevent cascade cycles
+        ON UPDATE NO ACTION,
+    CONSTRAINT FK_swipes_cloth
+        FOREIGN KEY (swiped_cloth_id) REFERENCES clothes(cloth_id)
+        ON DELETE CASCADE           -- swipe disappears if item is deleted
+        ON UPDATE NO ACTION
 );
 GO
 -- =============================================
@@ -120,58 +129,58 @@ GO
 -- 5. TRADES / AGREEMENTS
 -- =============================================
 CREATE TABLE trades (
-    trade_id       INT IDENTITY(1,1) PRIMARY KEY,
-    match_id       INT          NOT NULL,
-    trade_status   VARCHAR(20)  NOT NULL
-        CONSTRAINT DF_trades_status DEFAULT 'pending'
-        CONSTRAINT CHK_trades_status
-        CHECK (trade_status IN ('pending', 'agreed', 'shipping', 'delivered', 'completed', 'cancelled', 'disputed')),
-    meeting_method VARCHAR(20)  NULL
-        CONSTRAINT CHK_meeting_method
-        CHECK (meeting_method IN ('shipping', 'meetup', 'drop-off', NULL)),
-    details        VARCHAR(MAX) NULL,
-    created_at     DATETIME2(0) NOT NULL DEFAULT GETDATE(),
-    updated_at     DATETIME2(0) NOT NULL DEFAULT GETDATE(),
-    completed_at   DATETIME2(0) NULL,
-    CONSTRAINT FK_trades_match
-        FOREIGN KEY (match_id) REFERENCES matches(match_id)
-        ON DELETE CASCADE
-        ON UPDATE NO ACTION
+    trade_id       INT IDENTITY(1,1) PRIMARY KEY,
+    match_id       INT          NOT NULL,
+    trade_status   VARCHAR(20)  NOT NULL
+        CONSTRAINT DF_trades_status DEFAULT 'pending'
+        CONSTRAINT CHK_trades_status
+        CHECK (trade_status IN ('pending', 'agreed', 'shipping', 'delivered', 'completed', 'cancelled', 'disputed')),
+    meeting_method VARCHAR(20)  NULL
+        CONSTRAINT CHK_meeting_method
+        CHECK (meeting_method IN ('shipping', 'meetup', 'drop-off', NULL)),
+    details        VARCHAR(MAX) NULL,
+    created_at     DATETIME2(0) NOT NULL DEFAULT GETDATE(),
+    updated_at     DATETIME2(0) NOT NULL DEFAULT GETDATE(),
+    completed_at   DATETIME2(0) NULL,
+    CONSTRAINT FK_trades_match
+        FOREIGN KEY (match_id) REFERENCES matches(match_id)
+        ON DELETE CASCADE
+        ON UPDATE NO ACTION
 );
 GO
 -- =============================================
 -- 6. MESSAGES (chat between matched users)
 -- =============================================
 CREATE TABLE messages (
-    message_id     INT IDENTITY(1,1) PRIMARY KEY,
-    match_id       INT          NOT NULL,
-    sender_user_id INT          NOT NULL,
-    content        VARCHAR(MAX) NOT NULL,
-    is_read        BIT          NOT NULL DEFAULT 0,
-    sent_at        DATETIME2(0) NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT FK_messages_match
-        FOREIGN KEY (match_id) REFERENCES matches(match_id)
-        ON DELETE CASCADE,
-    CONSTRAINT FK_messages_sender
-        FOREIGN KEY (sender_user_id) REFERENCES users(user_id)
-        ON DELETE NO ACTION
+    message_id     INT IDENTITY(1,1) PRIMARY KEY,
+    match_id       INT          NOT NULL,
+    sender_user_id INT          NOT NULL,
+    content        VARCHAR(MAX) NOT NULL,
+    is_read        BIT          NOT NULL DEFAULT 0,
+    sent_at        DATETIME2(0) NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT FK_messages_match
+        FOREIGN KEY (match_id) REFERENCES matches(match_id)
+        ON DELETE CASCADE,
+    CONSTRAINT FK_messages_sender
+        FOREIGN KEY (sender_user_id) REFERENCES users(user_id)
+        ON DELETE NO ACTION
 );
 GO
 -- =============================================
 -- 7. NOTIFICATIONS
 -- =============================================
 CREATE TABLE notifications (
-    notification_id INT IDENTITY(1,1) PRIMARY KEY,
-    user_id         INT          NOT NULL,
-    type            VARCHAR(50)  NOT NULL
-        CONSTRAINT CHK_notification_type
-        CHECK (type IN ('new_match', 'new_message', 'trade_update', 'trade_completed', 'like_received')),
-    content         VARCHAR(MAX) NOT NULL,
-    is_read         BIT          NOT NULL DEFAULT 0,
-    created_at      DATETIME2(0) NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT FK_notifications_user
-        FOREIGN KEY (user_id) REFERENCES users(user_id)
-        ON DELETE CASCADE
+    notification_id INT IDENTITY(1,1) PRIMARY KEY,
+    user_id         INT          NOT NULL,
+    type            VARCHAR(50)  NOT NULL
+        CONSTRAINT CHK_notification_type
+        CHECK (type IN ('new_match', 'new_message', 'trade_update', 'trade_completed', 'like_received')),
+    content         VARCHAR(MAX) NOT NULL,
+    is_read         BIT          NOT NULL DEFAULT 0,
+    created_at      DATETIME2(0) NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT FK_notifications_user
+        FOREIGN KEY (user_id) REFERENCES users(user_id)
+        ON DELETE CASCADE
 );
 GO
 -- =============================================
