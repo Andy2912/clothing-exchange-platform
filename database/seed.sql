@@ -1,6 +1,7 @@
 USE swipestyle;
 GO
 
+DISABLE TRIGGER trg_swipes_after_insert ON swipes;
 -- ======================
 -- Seed User
 -- ======================
@@ -45,7 +46,7 @@ VALUES
 ),
 
 (
-    1,
+    2,
     'Vintage Denim Jacket',
     'Classic denim jacket in good condition.',
     'http://10.0.2.2:8000/uploads/denim.jpg',
@@ -57,7 +58,7 @@ VALUES
 ),
 
 (
-    1,
+    3,
     'Nike Hoodie',
     'Oversized Nike hoodie.',
     'http://10.0.2.2:8000/uploads/nikehoodie.jpg',
@@ -69,7 +70,7 @@ VALUES
 ),
 
 (
-    1,
+    4,
     'Grey Sweatpants',
     'Comfortable sweatpants for everyday wear.',
     'http://10.0.2.2:8000/uploads/sweatpants.jpg',
@@ -81,7 +82,7 @@ VALUES
 ),
 
 (
-    1,
+    5,
     'Basic White T-Shirt',
     'Simple cotton t-shirt.',
     'http://10.0.2.2:8000/uploads/tshirt.jpg',
