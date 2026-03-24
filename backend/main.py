@@ -18,7 +18,7 @@ app = FastAPI()
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 # CORS: laat Flutter Web toe
 app.add_middleware(
-    CORSMiddleware,
+    CORSMiddleware, 
     allow_origins=["*"],  # voor test ok
     allow_credentials=True,
     allow_methods=["*"],
@@ -36,18 +36,6 @@ def home():
 BASE_DIR = Path(__file__).resolve().parent
 PHOTO_PATH = BASE_DIR / "photo.jpg"
 
-# ✅ Base64 JSON
-@app.get("/photo")
-def get_photo_base64():
-    with open(PHOTO_PATH, "rb") as f:
-        encoded = base64.b64encode(f.read()).decode("utf-8")
-    return {"image": encoded}
-
-@app.get("/photo")
-def get_photo():
-    with open(PHOTO_PATH, "rb") as f:
-        encoded = base64.b64encode(f.read()).decode("utf-8")
-    return {"image": encoded}
 
 @app.get("/items")
 def get_items():
@@ -278,3 +266,51 @@ def get_matches(user_id: int):
             })
 
         return matches
+    
+class MessageRequest(BaseModel):
+    match_id: int
+    sender_user_id: int
+    content: str
+    
+@app.post("/messages")
+def send_message(message: MessageRequest):
+    with engine.connect() as connection:
+        connection.execute(text("""
+            INSERT INTO messages (match_id, sender_user_id, content)
+            VALUES (:match_id, :sender_user_id, :content)
+        """), {
+            "match_id": message.match_id,
+            "sender_user_id": message.sender_user_id,
+            "content": message.content
+        })
+
+        connection.commit()
+
+        return {
+            "message": "Message sent"
+        }
+    
+@app.get("/messages/{match_id}")
+def get_messages(match_id: int):
+    with engine.connect() as connection:
+        result = connection.execute(text("""
+            SELECT m.message_id, m.sender_user_id, u.username AS sender_username, m.content, m.timestamp
+            FROM messages m
+            JOIN users u ON u.user_id = m.sender_user_id
+            WHERE m.match_id = :match_id
+            ORDER BY m.timestamp ASC
+        """), {
+            "match_id": match_id
+        })
+
+        messages = []
+        for row in result:
+            messages.append({
+                "message_id": row.message_id,
+                "sender_user_id": row.sender_user_id,
+                "sender_username": row.sender_username,
+                "content": row.content,
+                "timestamp": row.timestamp.isoformat()
+            })
+
+        return messages

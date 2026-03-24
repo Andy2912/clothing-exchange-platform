@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:app/screens/chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -76,7 +77,9 @@ class _MatchesScreenState extends State<MatchesScreen> {
                         subtitle: Text(match.matchedItemName),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
-                          // open chat screen
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(match_Id: match.matchId),
+                            ),
+                          );
                         },
                       ),
                     );
