@@ -294,11 +294,11 @@ def send_message(message: MessageRequest):
 def get_messages(match_id: int):
     with engine.connect() as connection:
         result = connection.execute(text("""
-            SELECT m.message_id, m.sender_user_id, u.username AS sender_username, m.content, m.timestamp
+            SELECT m.message_id, m.sender_user_id, u.username AS sender_username, m.content, m.sent_at
             FROM messages m
             JOIN users u ON u.user_id = m.sender_user_id
             WHERE m.match_id = :match_id
-            ORDER BY m.timestamp ASC
+            ORDER BY m.sent_at ASC
         """), {
             "match_id": match_id
         })
@@ -310,7 +310,7 @@ def get_messages(match_id: int):
                 "sender_user_id": row.sender_user_id,
                 "sender_username": row.sender_username,
                 "content": row.content,
-                "timestamp": row.timestamp.isoformat()
+                "sent_at": str(row.sent_at)
             })
 
         return messages

@@ -64,9 +64,25 @@ class _ChatScreenState extends State<ChatScreen> {
                 : ListView.builder(
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(messages[index]['content']),
+                      final message = messages[index];
+                      final isMine = message['sender_user_id'] == 1;
+
+                      return Align(
+                        alignment: isMine
+                            ? Alignment.centerRight
+                            : Alignment.centerLeft,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(messages[index]['content']),
+                        ),
                       );
                     },
                   ),

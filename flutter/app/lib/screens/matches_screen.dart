@@ -75,7 +75,17 @@ class _MatchesScreenState extends State<MatchesScreen> {
                         ),
                         title: Text(match.otherUsername),
                         subtitle: Text(match.matchedItemName),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.purple,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text(
+                            "Message",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
                         onTap: () {
                           Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(match_Id: match.matchId),
                             ),
