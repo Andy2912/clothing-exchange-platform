@@ -1,19 +1,723 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_bottom_nav.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  String username = "";
+  String aboutMe = "";
+  String profileImageUrl = "";
+
+  bool isLoading = true;
+
+  Future<void> fetchProfile() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:8000/profile/1'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        setState(() {
+          username = data['username'];
+          aboutMe = data['about_me'];
+          profileImageUrl = data['profile_picture'];
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load profile');
+      }
+    } catch (e) {
+      print(e);
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchProfile();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: const Center(
-        child: Text(
-          "Profile screen",
-          style: TextStyle(fontSize: 24),
+      backgroundColor: const Color(0xffe0e0e0),
+
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.white, Color.fromARGB(255, 196, 129, 255)],
+          ),
+        ),
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+          children: [
+            AppBar(
+              title: const Text("My profile"),
+              centerTitle: true,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+            ),
+
+            const SizedBox(height: 30),
+
+            CircleAvatar(
+              radius: 75,
+              backgroundImage: profileImageUrl.isNotEmpty
+                  ? NetworkImage(profileImageUrl)
+                  : const AssetImage(
+                "assets/ProfilePicturePlaceholder.png",
+              ) as ImageProvider,
+            ),
+
+            const SizedBox(height: 15),
+
+            Text(
+              username,
+              style: const TextStyle(fontSize: 32),
+            ),
+
+            const SizedBox(height: 15),
+
+            Container(
+              padding: const EdgeInsets.all(8),
+              width: 325,
+              height: 125,
+              decoration: BoxDecoration(
+                color: const Color(0x7fffffff),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                aboutMe.isNotEmpty ? aboutMe : "No bio yet",
+                style: const TextStyle(color: Color(0xaa000000)),
+              ),
+            ),
+
+            const SizedBox(height: 15),
+
+            SizedBox(
+              width: 325,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                      bottomLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
+                    ),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: Color(0xFFFFE491),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const NewListing()),
+                  );
+                },
+                child: Align(
+                  alignment: Alignment(-0.75, 0),
+                  child: Text("New listing", style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 15),
+
+            SizedBox(
+              width: 325,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AccountPage(),
+                    ),
+                  );
+                },
+                child: Align(
+                  alignment: Alignment(-0.75, 0),
+                  child: Text("Account", style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ),
+
+            SizedBox(
+              width: 325,
+              height: 65,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MyItemsPage(),
+                    ),
+                  );
+                },
+                child: Align(
+                  alignment: Alignment(-0.75, 0),
+                  child: Text(
+                    "My items",
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+              ),
+            ),
+
+            SizedBox(
+              width: 325,
+              height: 65,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MatchesPage(),
+                    ),
+                  );
+                },
+                child: Align(
+                  alignment: Alignment(-0.75, 0),
+                  child: Text("Matches", style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ),
+
+            SizedBox(
+              width: 325,
+              height: 65,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HistoryPage(),
+                    ),
+                  );
+                },
+                child: Align(
+                  alignment: Alignment(-0.75, 0),
+                  child: Text("History", style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ),
+
+            SizedBox(
+              width: 325,
+              height: 65,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
+                    ),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                ),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SettingsPage(),
+                    ),
+                  );
+                },
+                child: Align(
+                  alignment: Alignment(-0.75, 0),
+                  child: Text(
+                    "Settings",
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 15),
+
+            Align(
+              alignment: Alignment(-0.65, 0),
+              child: ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xffd00000),
+                ),
+                child: Text(
+                  "Sign out",
+                  style: TextStyle(color: Color(0xffffffff)),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
-      bottomNavigationBar: const AppBottomNav(currentIndex: 2),
+    );
+  }
+}
+
+class AccountPage extends StatelessWidget {
+  const AccountPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Account")),
+      body: const Center(child: Text("Account Page")),
+    );
+  }
+}
+
+class MyItemsPage extends StatelessWidget {
+  const MyItemsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("My Items")),
+      body: const Center(child: Text("My Items Page")),
+    );
+  }
+}
+
+class MatchesPage extends StatelessWidget {
+  const MatchesPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Matches")),
+      body: const Center(child: Text("Matches Page")),
+    );
+  }
+}
+
+class HistoryPage extends StatelessWidget {
+  const HistoryPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("History")),
+      body: const Center(child: Text("History Page")),
+    );
+  }
+}
+
+class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.white, Color.fromARGB(255, 196, 129, 255)],
+          ),
+        ),
+        child: Column(
+          children: [
+            AppBar(
+              title: const Text("Settings"),
+              centerTitle: true,
+              backgroundColor: Color(0x00000000),
+            ),
+            const SizedBox(height: 30),
+            SizedBox(
+              width: 325,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                ),
+                onPressed: () {},
+                child: Align(
+                  alignment: Alignment(-0.75, 0),
+                  child: Text("Settings", style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ),
+
+            SizedBox(
+              width: 325,
+              height: 65,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                ),
+                onPressed: () {},
+                child: Align(
+                  alignment: Alignment(-0.75, 0),
+                  child: Text("More settings", style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ),
+
+            SizedBox(
+              width: 325,
+              height: 65,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                ),
+                onPressed: () {},
+                child: Align(
+                  alignment: Alignment(-0.75, 0),
+                  child: Text("More settings", style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ),
+
+            SizedBox(
+              width: 325,
+              height: 65,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                ),
+                onPressed: () {},
+                child: Align(
+                  alignment: Alignment(-0.75, 0),
+                  child: Text("More settings", style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ),
+
+            SizedBox(
+              width: 325,
+              height: 65,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                ),
+                onPressed: () {},
+                child: Align(
+                  alignment: Alignment(-0.75, 0),
+                  child: Text("More settings", style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ),
+
+            SizedBox(
+              width: 325,
+              height: 65,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                ),
+                onPressed: () {},
+                child: Align(
+                  alignment: Alignment(-0.75, 0),
+                  child: Text("More settings", style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ),
+
+            SizedBox(
+              width: 325,
+              height: 65,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                ),
+                onPressed: () {},
+                child: Align(
+                  alignment: Alignment(-0.75, 0),
+                  child: Text("More settings", style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ),
+
+            SizedBox(
+              width: 325,
+              height: 65,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                ),
+                onPressed: () {},
+                child: Align(
+                  alignment: Alignment(-0.75, 0),
+                  child: Text("More settings", style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ),
+
+            SizedBox(
+              width: 325,
+              height: 65,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                ),
+                onPressed: () {},
+                child: Align(
+                  alignment: Alignment(-0.75, 0),
+                  child: Text("More settings", style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ),
+
+            SizedBox(
+              width: 325,
+              height: 65,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
+                    ),
+                  ),
+                ),
+                onPressed: () {},
+                child: Align(
+                  alignment: Alignment(-0.75, 0),
+                  child: Text("More settings", style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class NewListing extends StatefulWidget {
+  const NewListing({super.key});
+
+  @override
+  State<NewListing> createState() => _NewListingState();
+}
+
+class _NewListingState extends State<NewListing> {
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
+
+  File? _image;
+  final ImagePicker _picker = ImagePicker();
+
+  bool isLoading = false;
+
+  Future<void> pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _image = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<void> createListing() async {
+    if (nameController.text.isEmpty ||
+        descriptionController.text.isEmpty ||
+        _image == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill in all fields")),
+      );
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('http://10.0.2.2:8000/listings/'),
+      );
+
+      request.fields['name'] = nameController.text;
+      request.fields['description'] = descriptionController.text;
+      request.fields['user_id'] = '1';
+
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'image',
+          _image!.path,
+        ),
+      );
+
+      var response = await request.send();
+
+      if (response.statusCode == 201) {
+        Navigator.pop(context); // go back after success
+      } else {
+        throw Exception('Failed to create listing');
+      }
+    } catch (e) {
+      print(e);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error creating listing")),
+      );
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.white, Color.fromARGB(255, 196, 129, 255)],
+          ),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              AppBar(
+                title: const Text("New listing"),
+                centerTitle: true,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+              ),
+
+              const SizedBox(height: 50),
+
+              SizedBox(
+                width: 325,
+                child: TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    filled: true,
+                    fillColor: Color(0x7fffffff),
+                    border: OutlineInputBorder(),
+                    hintText: "Item name",
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              GestureDetector(
+                onTap: pickImage,
+                child: Container(
+                  width: 325,
+                  height: 325,
+                  decoration: BoxDecoration(
+                    color: const Color(0x7f000000),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: _image == null
+                      ? const Icon(Icons.add_a_photo, color: Colors.white, size: 40)
+                      : ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.file(
+                      _image!,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              SizedBox(
+                width: 325,
+                child: TextField(
+                  controller: descriptionController,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    filled: true,
+                    fillColor: Color(0x7fffffff),
+                    border: OutlineInputBorder(),
+                    hintText: "Item description",
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 30),
+
+              SizedBox(
+                width: 325,
+                height: 70,
+                child: ElevatedButton(
+                  onPressed: isLoading ? null : createListing,
+                  child: isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text("Post", style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

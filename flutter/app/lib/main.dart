@@ -26,7 +26,7 @@ class SwipeSwapApp extends StatelessWidget {
         '/login': (_) => const LoginScreen(),
         '/swipe': (_) => const SwipeScreen(),
         '/matches': (_) => const MatchesScreen(),
-        '/profile': (_) => const ProfileScreen(),
+        '/profile': (_) => const ProfilePage(),
       },
     );
   }
