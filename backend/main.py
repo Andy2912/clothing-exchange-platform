@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from db import engine
 from sqlalchemy import text
+from fastapi import UploadFile, File
 
 class SwipeRequest(BaseModel):
     swiper_user_id: int
@@ -35,6 +36,42 @@ def home():
 
 BASE_DIR = Path(__file__).resolve().parent
 PHOTO_PATH = BASE_DIR / "photo.jpg"
+
+#profilepic
+from fastapi.staticfiles import StaticFiles
+
+app.mount("/profilePic", StaticFiles(directory="profilePic"), name="profilePic")
+
+import shutil
+@app.post("/upload-profile-pic")
+async def upload_profile_pic(file: UploadFile):
+    file_path = f"profilePic/{file.filename}"
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    return {"url": f"/profilePic/{file.filename}"}
+@app.get("/profile/{user_id}")
+
+def get_profile(user_id: int):
+    with engine.connect() as connection:
+        result = connection.execute(text("""
+            SELECT username, bio, profile_pic_url
+            FROM users
+            WHERE user_id = :user_id
+        """), {"user_id": user_id}).fetchone()
+
+        if not result:
+            return {"detail": "User not found"}
+
+        return {
+            "username": result.username,
+            "about_me": result.bio if result.bio else "",
+            "profile_picture": result.profile_pic_url if result.profile_pic_url else ""
+        }
+
+
+@app.post("/")
 
 
 @app.get("/items")
