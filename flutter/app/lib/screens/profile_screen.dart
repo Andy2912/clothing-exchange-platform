@@ -19,6 +19,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
   bool isLoading = true;
 
+  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController aboutMeController = TextEditingController();
+
+  bool isEditing = false;
+  bool isSaving = false;
+
   Future<void> fetchProfile() async {
     try {
       final response = await http.get(
@@ -29,9 +35,13 @@ class _ProfilePageState extends State<ProfilePage> {
         final data = jsonDecode(response.body);
 
         setState(() {
-          username = data['username'];
-          aboutMe = data['about_me'];
-          profileImageUrl = data['profile_picture'];
+          username = data['username'] ?? "";
+          aboutMe = data['about_me'] ?? "";
+          profileImageUrl = data['profile_picture'] ?? "";
+
+          usernameController.text = username;
+          aboutMeController.text = aboutMe;
+
           isLoading = false;
         });
       } else {
@@ -43,6 +53,101 @@ class _ProfilePageState extends State<ProfilePage> {
         isLoading = false;
       });
     }
+  }
+
+  Future<void> saveProfile() async {
+    setState(() {
+      isSaving = true;
+    });
+
+    try {
+      final response = await http.put(
+        Uri.parse('http://10.0.2.2:8000/profile/1/update'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': usernameController.text,
+          'about_me': aboutMeController.text,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        setState(() {
+          username = data['username'] ?? usernameController.text;
+          aboutMe = data['about_me'] ?? aboutMeController.text;
+          isEditing = false;
+        });
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Profile updated")));
+      } else {
+        print(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to update profile")),
+        );
+      }
+    } catch (e) {
+      print(e);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Error updating profile")));
+    }
+
+    setState(() {
+      isSaving = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    usernameController.dispose();
+    aboutMeController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildMenuItem({
+    required String text,
+    required VoidCallback onTap,
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.only(
+          topLeft: isFirst ? const Radius.circular(18) : Radius.zero,
+          topRight: isFirst ? const Radius.circular(18) : Radius.zero,
+          bottomLeft: isLast ? const Radius.circular(18) : Radius.zero,
+          bottomRight: isLast ? const Radius.circular(18) : Radius.zero,
+        ),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 22),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color.fromARGB(255, 0, 0, 0),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPurpleDivider() {
+    return Container(
+      height: 1,
+      margin: const EdgeInsets.symmetric(horizontal: 0),
+      color: const Color(0xFFB326D1).withOpacity(0.18),
+    );
   }
 
   @override
@@ -62,19 +167,55 @@ class _ProfilePageState extends State<ProfilePage> {
         elevation: 0,
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.white, Color.fromARGB(255, 196, 129, 255)],
-          ),
-        ),
+        color: const Color(0xFFF7F3F3),
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
                 child: Column(
                   children: [
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 10),
+
+                    // Edit button (top right inside body)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: isSaving
+                                ? null
+                                : () {
+                                    if (isEditing) {
+                                      saveProfile();
+                                    } else {
+                                      setState(() {
+                                        isEditing = true;
+                                      });
+                                    }
+                                  },
+                            icon: Icon(
+                              isEditing ? Icons.save : Icons.edit,
+                              size: 18,
+                            ),
+                            label: Text(isEditing ? "Save" : "Edit"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.black,
+                              elevation: 2,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
 
                     CircleAvatar(
                       radius: 75,
@@ -88,7 +229,27 @@ class _ProfilePageState extends State<ProfilePage> {
 
                     const SizedBox(height: 15),
 
-                    Text(username, style: const TextStyle(fontSize: 32)),
+                    SizedBox(
+                      width: 325,
+                      child: isEditing
+                          ? TextField(
+                              controller: usernameController,
+                              textAlign: TextAlign.center,
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color(0x7fffffff),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                hintText: "Username",
+                              ),
+                            )
+                          : Text(
+                              username,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 32),
+                            ),
+                    ),
 
                     const SizedBox(height: 15),
 
@@ -100,11 +261,22 @@ class _ProfilePageState extends State<ProfilePage> {
                         color: const Color(0x7fffffff),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Text(
-                        aboutMe.isNotEmpty ? aboutMe : "No bio yet",
-                        style: const TextStyle(color: Color(0xaa000000)),
-                      ),
+                      child: isEditing
+                          ? TextField(
+                              controller: aboutMeController,
+                              maxLines: 5,
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                hintText: "Write something about yourself",
+                              ),
+                            )
+                          : Text(
+                              aboutMe.isNotEmpty ? aboutMe : "No bio yet",
+                              style: const TextStyle(color: Color(0xaa000000)),
+                            ),
                     ),
+
+                    const SizedBox(height: 15),
 
                     const SizedBox(height: 15),
 
@@ -112,16 +284,17 @@ class _ProfilePageState extends State<ProfilePage> {
                       width: 325,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black,
+                          elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(20),
-                              topRight: Radius.circular(20),
-                              bottomLeft: Radius.circular(20),
-                              bottomRight: Radius.circular(20),
+                            borderRadius: BorderRadius.circular(20),
+                            side: const BorderSide(
+                              color: Color(0xFFB326D1), // purple border
+                              width: 2,
                             ),
                           ),
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: Color(0xFFFFE491),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
                         onPressed: () {
                           Navigator.push(
@@ -143,148 +316,87 @@ class _ProfilePageState extends State<ProfilePage> {
 
                     const SizedBox(height: 15),
 
-                    SizedBox(
+                    Container(
                       width: 325,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(20),
-                              topRight: Radius.circular(20),
-                            ),
-                          ),
-                          padding: EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: const Color(0xFFB326D1),
+                          width: 2,
                         ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AccountPage(),
-                            ),
-                          );
-                        },
-                        child: Align(
-                          alignment: Alignment(-0.75, 0),
-                          child: Text(
-                            "Account",
-                            style: TextStyle(fontSize: 16),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x14000000),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
                           ),
-                        ),
+                        ],
                       ),
-                    ),
-
-                    SizedBox(
-                      width: 325,
-                      height: 65,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero,
+                      child: Column(
+                        children: [
+                          _buildMenuItem(
+                            text: "Account",
+                            isFirst: true,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const AccountPage(),
+                                ),
+                              );
+                            },
                           ),
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const MyItemsPage(),
-                            ),
-                          );
-                        },
-                        child: Align(
-                          alignment: Alignment(-0.75, 0),
-                          child: Text(
-                            "My items",
-                            style: TextStyle(fontSize: 16),
+                          _buildPurpleDivider(),
+                          _buildMenuItem(
+                            text: "My items",
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const MyItemsPage(),
+                                ),
+                              );
+                            },
                           ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(
-                      width: 325,
-                      height: 65,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero,
+                          _buildPurpleDivider(),
+                          _buildMenuItem(
+                            text: "Matches",
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const MatchesPage(),
+                                ),
+                              );
+                            },
                           ),
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const MatchesPage(),
-                            ),
-                          );
-                        },
-                        child: Align(
-                          alignment: Alignment(-0.75, 0),
-                          child: Text(
-                            "Matches",
-                            style: TextStyle(fontSize: 16),
+                          _buildPurpleDivider(),
+                          _buildMenuItem(
+                            text: "History",
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const HistoryPage(),
+                                ),
+                              );
+                            },
                           ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(
-                      width: 325,
-                      height: 65,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero,
+                          _buildPurpleDivider(),
+                          _buildMenuItem(
+                            text: "Settings",
+                            isLast: true,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const SettingsPage(),
+                                ),
+                              );
+                            },
                           ),
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const HistoryPage(),
-                            ),
-                          );
-                        },
-                        child: Align(
-                          alignment: Alignment(-0.75, 0),
-                          child: Text(
-                            "History",
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(
-                      width: 325,
-                      height: 65,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.only(
-                              bottomLeft: Radius.circular(20),
-                              bottomRight: Radius.circular(20),
-                            ),
-                          ),
-                          padding: EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const SettingsPage(),
-                            ),
-                          );
-                        },
-                        child: Align(
-                          alignment: Alignment(-0.75, 0),
-                          child: Text(
-                            "Settings",
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
+                        ],
                       ),
                     ),
 
@@ -320,7 +432,6 @@ class AccountPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text("Account")),
       body: const Center(child: Text("Account Page")),
-      
     );
   }
 }

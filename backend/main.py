@@ -14,6 +14,10 @@ class SwipeRequest(BaseModel):
     swiper_user_id: int
     swiped_cloth_id: int
     action: str # "like" or "dislike"
+    
+class ProfileUpdateRequest(BaseModel):
+    username: str
+    about_me: str
 
 app = FastAPI()
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
@@ -70,8 +74,39 @@ def get_profile(user_id: int):
             "profile_picture": result.profile_pic_url if result.profile_pic_url else ""
         }
 
+@app.put("/profile/{user_id}/update")
+def update_profile(user_id: int, profile: ProfileUpdateRequest):
+    with engine.connect() as connection:
+        result = connection.execute(text("""
+            UPDATE users
+            SET username = :username,
+                bio = :bio
+            WHERE user_id = :user_id
+        """), {
+            "username": profile.username,
+            "bio": profile.about_me,
+            "user_id": user_id
+        })
 
-@app.post("/")
+        connection.commit()
+
+        check_user = connection.execute(text("""
+            SELECT username, bio, profile_pic_url
+            FROM users
+            WHERE user_id = :user_id
+        """), {
+            "user_id": user_id
+        }).fetchone()
+
+        if not check_user:
+            return {"detail": "User not found"}
+
+        return {
+            "username": check_user.username,
+            "about_me": check_user.bio if check_user.bio else "",
+            "profile_picture": check_user.profile_pic_url if check_user.profile_pic_url else ""
+        }
+
 
 
 @app.get("/items")
@@ -351,3 +386,5 @@ def get_messages(match_id: int):
             })
 
         return messages
+    
+   
