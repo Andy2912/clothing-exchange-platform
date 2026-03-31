@@ -167,7 +167,16 @@ class _ProfilePageState extends State<ProfilePage> {
         elevation: 0,
       ),
       body: Container(
-        color: const Color(0xFFF7F3F3),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFFFFFFF), // pure white
+              Color.fromARGB(255, 241, 229, 255), // VERY light purple
+            ],
+          ),
+        ),
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
@@ -359,18 +368,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               );
                             },
                           ),
-                          _buildPurpleDivider(),
-                          _buildMenuItem(
-                            text: "Matches",
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const MatchesPage(),
-                                ),
-                              );
-                            },
-                          ),
+
                           _buildPurpleDivider(),
                           _buildMenuItem(
                             text: "History",
