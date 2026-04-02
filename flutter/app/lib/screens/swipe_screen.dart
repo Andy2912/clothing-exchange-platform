@@ -16,12 +16,14 @@ class _SwipeScreenState extends State<SwipeScreen> {
   static const bgEnd = Color.fromARGB(255, 196, 129, 255);
   static const accent = Color.fromARGB(255, 171, 0, 193);
 
+  final String baseUrl = "http://10.0.2.2:8000";
+
 Future<void> sendSwipe({
   required int clothId,
   required String action,
 }) async {
   final response = await http.post(
-    Uri.parse('http://10.0.2.2:8000/swipe'),
+    Uri.parse('$baseUrl/swipe'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({
       'swiper_user_id': 1,
@@ -39,7 +41,7 @@ Future<void> sendSwipe({
 
 Future<void> fetchItems() async {
   final response = await http.get(
-    Uri.parse('http://10.0.2.2:8000/items'),
+    Uri.parse('$baseUrl/items'),
   );
 
   if (response.statusCode == 200) {
@@ -181,7 +183,7 @@ int currentIndex = 0;
   details:
       '${items[currentIndex].brand}, Size ${items[currentIndex].size}. ${items[currentIndex].conditionRating}.',
   owner: 'from database',
-  imageUrl: items[currentIndex].imageUrl,
+  imageUrl: "$baseUrl${items[currentIndex].imageUrl}",
 ),
 
                 ),

@@ -19,9 +19,11 @@ class _MatchesScreenState extends State<MatchesScreen> {
   List<MatchItem> matches = [];
   bool isLoading = true;
 
+final String baseUrl = "http://10.0.2.2:8000";
+
   Future<void> fetchMatches() async {
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:8000/matches/1'),
+      Uri.parse('$baseUrl/matches/1'),
     );
 
     if (response.statusCode == 200) {
@@ -71,7 +73,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                       ),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundImage: NetworkImage(match.matchedItemImageUrl),
+                          backgroundImage: NetworkImage("$baseUrl${match.matchedItemImageUrl}"),
                         ),
                         title: Text(match.otherUsername),
                         subtitle: Text(match.matchedItemName),

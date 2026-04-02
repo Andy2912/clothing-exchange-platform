@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'my_items_screen.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -25,10 +26,12 @@ class _ProfilePageState extends State<ProfilePage> {
   bool isEditing = false;
   bool isSaving = false;
 
+  final String baseUrl = "http://10.0.2.2:8000";
+
   Future<void> fetchProfile() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8000/profile/1'),
+        Uri.parse('$baseUrl/profile/1'),
       );
 
       if (response.statusCode == 200) {
@@ -62,7 +65,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     try {
       final response = await http.put(
-        Uri.parse('http://10.0.2.2:8000/profile/1/update'),
+        Uri.parse('$baseUrl/profile/1/update'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'username': usernameController.text,
@@ -169,8 +172,8 @@ class _ProfilePageState extends State<ProfilePage> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
             colors: [
               Color(0xFFFFFFFF), // pure white
               Color.fromARGB(255, 241, 229, 255), // VERY light purple
@@ -229,7 +232,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     CircleAvatar(
                       radius: 75,
                       backgroundImage: profileImageUrl.isNotEmpty
-                          ? NetworkImage("http://10.0.2.2:8000$profileImageUrl")
+                          ? NetworkImage("$baseUrl$profileImageUrl")
                           : const AssetImage(
                                   "assets/ProfilePicturePlaceholder.png",
                                 )
@@ -434,17 +437,7 @@ class AccountPage extends StatelessWidget {
   }
 }
 
-class MyItemsPage extends StatelessWidget {
-  const MyItemsPage({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("My Items")),
-      body: const Center(child: Text("My Items Page")),
-    );
-  }
-}
 
 class MatchesPage extends StatelessWidget {
   const MatchesPage({super.key});

@@ -143,6 +143,46 @@ def get_items():
 
         return items
     
+@app.get("/items/user/{user_id}")
+def get_user_items(user_id: int):
+    with engine.connect() as connection:
+        result = connection.execute(text("""
+            SELECT
+                cloth_id,
+                name,
+                description,
+                image_url,
+                category,
+                brand,
+                size,
+                condition_rating,
+                estimated_value,
+                is_available
+            FROM clothes
+            WHERE user_id = :user_id
+            ORDER BY cloth_id DESC
+        """), {
+            "user_id": user_id
+        })
+        
+        items = []
+        for row in result:
+            items.append({
+                "cloth_id": row.cloth_id,
+                "name": row.name,
+                "description": row.description,
+                "image_url": row.image_url,
+                "category": row.category,
+                "brand": row.brand,
+                "size": row.size,
+                "condition_rating": row.condition_rating,
+                "estimated_value": float(row.estimated_value) if row.estimated_value is not None else None,
+                "is_available": row.is_available
+            })
+            
+        return items
+
+    
 @app.post("/swipe")
 def create_swipe(swipe: SwipeRequest):
     with engine.connect() as connection:
@@ -387,4 +427,4 @@ def get_messages(match_id: int):
 
         return messages
     
-   
+    
