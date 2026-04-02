@@ -237,6 +237,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   "assets/ProfilePicturePlaceholder.png",
                                 )
                                 as ImageProvider,
+                      
                     ),
 
                     const SizedBox(height: 15),
@@ -272,6 +273,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       decoration: BoxDecoration(
                         color: const Color(0x7fffffff),
                         borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color.fromARGB(255, 191, 0, 255).withOpacity(0.08),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: isEditing
                           ? TextField(
