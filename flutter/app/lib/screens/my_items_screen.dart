@@ -184,6 +184,7 @@ class _MyItemsPageState extends State<MyItemsPage> {
                     );
                   },
                 ),
+                bottomNavigationBar: const AppBottomNav(currentIndex: 2,),
     );
   }
 }
