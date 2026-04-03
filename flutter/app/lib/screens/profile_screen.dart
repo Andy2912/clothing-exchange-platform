@@ -292,7 +292,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             )
                           : Text(
                               aboutMe.isNotEmpty ? aboutMe : "No bio yet",
-                              style: const TextStyle(color: Color(0xaa000000)),
+                              style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
                             ),
                     ),
 
