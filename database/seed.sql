@@ -9,7 +9,7 @@ INSERT INTO users (username, email, password_hash, city, country)
 VALUES (
     'testuser',
     'test@example.com',
-    'hashedpassword',
+    '$2b$12$j6NP2Ey3o2tDYyReIOVrO.YM9KYkDjSmlRHJUKLy9StkW6W0O5oy6',
     'Brussels',
     'Belgium'
 );
@@ -90,6 +90,36 @@ VALUES
     'M',
     'good',
     15
+);
+
+
+-- test fot match with another user
+USE swipestyle;
+GO
+
+-- ======================
+-- Seed Match (mutual like)
+-- ======================
+
+-- Ensure there is another user to match with
+INSERT INTO users (username, email, password_hash, city, country)
+VALUES (
+    'matchuser',
+    'match@example.com',
+    '$2b$12$j6NP2Ey3o2tDYyReIOVrO.YM9KYkDjSmlRHJUKLy9StkW6W0O5oy6',
+    'Antwerp',
+    'Belgium'
+);
+
+GO
+
+INSERT INTO matches (user1_id, user2_id, cloth1_id, cloth2_id, status)
+VALUES (
+    1,      -- existing user
+    2,      -- new match user
+    1,      -- an item from user 1
+    NULL,   -- no item from user 2 yet
+    'active'
 );
 
 GO

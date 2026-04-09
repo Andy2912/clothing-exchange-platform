@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:io' show Platform;
 import 'package:http/http.dart' as http;
 
 import '../models/match_item.dart';
@@ -18,9 +20,23 @@ class _MatchesScreenState extends State<MatchesScreen> {
   List<MatchItem> matches = [];
   bool isLoading = true;
 
+  String _getBaseUrl() {
+    if (kIsWeb) {
+      return 'http://localhost:8000';
+    }
+    if (Platform.isAndroid) {
+      return 'http://10.0.2.2:8000';
+    }
+    if (Platform.isIOS) {
+      return 'http://localhost:8000';
+    }
+    return 'http://localhost:8000';
+  }
+
   Future<void> fetchMatches() async {
+    final baseUrl = _getBaseUrl();
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:8000/matches/1'),
+      Uri.parse('$baseUrl/matches/1'),
     );
 
     if (response.statusCode == 200) {

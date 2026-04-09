@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:io' show Platform;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/clothing_item.dart';
@@ -16,12 +18,26 @@ class _SwipeScreenState extends State<SwipeScreen> {
   static const bgEnd = Color.fromARGB(255, 196, 129, 255);
   static const accent = Color.fromARGB(255, 171, 0, 193);
 
+String _getBaseUrl() {
+  if (kIsWeb) {
+    return 'http://localhost:8000';
+  }
+  if (Platform.isAndroid) {
+    return 'http://10.0.2.2:8000';
+  }
+  if (Platform.isIOS) {
+    return 'http://localhost:8000';
+  }
+  return 'http://localhost:8000';
+}
+
 Future<void> sendSwipe({
   required int clothId,
   required String action,
 }) async {
+  final baseUrl = _getBaseUrl();
   final response = await http.post(
-    Uri.parse('http://10.0.2.2:8000/swipe'),
+    Uri.parse('$baseUrl/swipe'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({
       'swiper_user_id': 1,
@@ -38,8 +54,9 @@ Future<void> sendSwipe({
 }
 
 Future<void> fetchItems() async {
+  final baseUrl = _getBaseUrl();
   final response = await http.get(
-    Uri.parse('http://10.0.2.2:8000/items'),
+    Uri.parse('$baseUrl/items'),
   );
 
   if (response.statusCode == 200) {

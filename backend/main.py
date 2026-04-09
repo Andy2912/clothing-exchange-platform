@@ -3,11 +3,14 @@ from pydantic import BaseModel
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from db import engine
 from sqlalchemy import text
+from passlib.context import CryptContext
+from jose import JWTError, jwt
+from datetime import datetime, timedelta
 
 class SwipeRequest(BaseModel):
     swiper_user_id: int
@@ -278,3 +281,56 @@ def get_matches(user_id: int):
             })
 
         return matches
+
+# login + registration
+import bcrypt
+SECRET_KEY = "replace-with-random-secret"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+# helpers
+def verify_password(plain, hashed):
+    return bcrypt.checkpw(plain.encode('utf-8'), hashed.encode('utf-8'))
+
+def get_password_hash(password):
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+class RegisterRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+
+# register endpoint
+@app.post("/register")
+def register(payload: RegisterRequest):
+    with engine.connect() as conn:
+        existing = conn.execute(text("SELECT user_id FROM users WHERE username = :u OR email = :e"),
+                                 {"u": payload.username, "e": payload.email}).fetchone()
+        if existing:
+            return {"error":"user exists"}
+        hashed = get_password_hash(payload.password)
+        conn.execute(text("INSERT INTO users (username,email,password_hash) VALUES (:u,:e,:p)"),
+                     {"u": payload.username, "e": payload.email, "p": hashed})
+        conn.commit()
+        return {"message":"ok"}
+    
+# login endpoint 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+@app.post("/login")
+def login(payload: LoginRequest):
+    with engine.connect() as conn:
+        row = conn.execute(text("SELECT user_id, password_hash FROM users WHERE username=:u"),
+                           {"u":payload.username}).fetchone()
+        if not row or not verify_password(payload.password, row.password_hash):
+            raise HTTPException(status_code=401, detail="invalid credentials")
+        token = create_access_token({"sub": str(row.user_id)})
+        return {"access_token": token, "token_type":"bearer","user_id":row.user_id}

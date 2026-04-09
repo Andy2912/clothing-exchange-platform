@@ -15,3 +15,5 @@ Front-end
     flutter run -d chrome
 - run flutter in emulator
     flutter run
+    or
+    flutter emulators --launch emulator_id

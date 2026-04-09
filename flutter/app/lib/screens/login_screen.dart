@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:io' show Platform;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -9,9 +13,11 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool isLogin = true;
+  bool isLoading = false;
 
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final usernameController = TextEditingController();
 
   
   static const bgStart = Colors.white;
@@ -22,12 +28,75 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
+    usernameController.dispose();
     super.dispose();
   }
 
-  void submit() {
-   
-    Navigator.pushReplacementNamed(context, '/swipe');
+  Future<void> submit() async {
+    setState(() => isLoading = true);
+    try {
+      final String baseUrl = _getBaseUrl();
+      
+      if (isLogin) {
+        final response = await http.post(
+          Uri.parse('$baseUrl/login'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'username': usernameController.text,
+            'password': passwordController.text,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          if (mounted) Navigator.pushReplacementNamed(context, '/swipe');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Login failed: ${response.statusCode}')),
+          );
+        }
+      } else {
+        final response = await http.post(
+          Uri.parse('$baseUrl/register'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'username': usernameController.text,
+            'email': emailController.text,
+            'password': passwordController.text,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Registered! Please log in')),
+          );
+          setState(() => isLogin = true);
+          usernameController.clear();
+          passwordController.clear();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Registration failed: ${response.statusCode}')),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  String _getBaseUrl() {
+    if (kIsWeb) {
+      return 'http://localhost:8000';
+    } else if (Platform.isAndroid) {
+      return 'http://10.0.2.2:8000';
+    } else if (Platform.isIOS) {
+      return 'http://localhost:8000';
+    }
+    return 'http://localhost:8000';
   }
 
   @override
@@ -101,17 +170,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 18),
 
-                    // Email
+                    // Username (for both login and register)
                     const Align(
                       alignment: Alignment.centerLeft,
-                      child: Text('Email', style: TextStyle(fontWeight: FontWeight.w600)),
+                      child: Text('Username', style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
                     const SizedBox(height: 6),
                     TextField(
-                      controller: emailController,
-                      keyboardType: TextInputType.emailAddress,
+                      controller: usernameController,
                       decoration: InputDecoration(
-                        hintText: 'you@example.com',
+                        hintText: 'your_username',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -120,6 +188,27 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
 
                     const SizedBox(height: 14),
+
+                    // Email (only for register)
+                    if (!isLogin) ...[
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Email', style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          hintText: 'you@example.com',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
 
                     // Password
                     const Align(
@@ -146,7 +235,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity,
                       height: 46,
                       child: ElevatedButton(
-                        onPressed: submit,
+                        onPressed: isLoading ? null : submit,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: accent,
                           foregroundColor: Colors.white,
@@ -154,7 +243,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: Text(isLogin ? 'Login' : 'Create account'),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : Text(isLogin ? 'Login' : 'Create account'),
                       ),
                     ),
                   ],

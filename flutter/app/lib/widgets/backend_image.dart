@@ -1,13 +1,26 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'dart:io' show Platform;
 
 class BackendImage extends StatelessWidget {
   const BackendImage({super.key});
 
+  String get _baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:8000';
+    } else if (Platform.isAndroid) {
+      return 'http://10.0.2.2:8000';
+    } else if (Platform.isIOS) {
+      return 'http://localhost:8000';
+    }
+    return 'http://localhost:8000';
+  }
+
   Future<Uint8List> _fetchBytes() async {
-    final res = await http.get(Uri.parse('http://10.0.2.2:8000/photo'));
+    final res = await http.get(Uri.parse('$_baseUrl/photo'));
 
     if (res.statusCode != 200) {
       throw Exception('HTTP ${res.statusCode}: ${res.body}');
