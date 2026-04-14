@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../widgets/app_bottom_nav.dart';
+import 'package:app/session.dart';
 
 class MyItemsPage extends StatefulWidget {
   const MyItemsPage({super.key});
@@ -19,7 +20,7 @@ class _MyItemsPageState extends State<MyItemsPage> {
   Future<void> fetchMyItems() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/items/user/1'),
+        Uri.parse('$baseUrl/items/user/${AppSession.userId}'),
       );
 
       if (response.statusCode == 200) {

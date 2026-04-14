@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io' show Platform;
+import 'package:app/session.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,7 +20,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final passwordController = TextEditingController();
   final usernameController = TextEditingController();
 
-  
   static const bgStart = Colors.white;
   static const bgEnd = Color.fromARGB(255, 196, 129, 255);
   static const accent = Color.fromARGB(255, 171, 0, 193);
@@ -36,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => isLoading = true);
     try {
       final String baseUrl = _getBaseUrl();
-      
+
       if (isLogin) {
         final response = await http.post(
           Uri.parse('$baseUrl/login'),
@@ -49,7 +49,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
-          if (mounted) Navigator.pushReplacementNamed(context, '/swipe');
+
+          AppSession.userId = data['user_id'];
+          AppSession.accessToken = data['access_token'];
+
+          print("Logged in user id: ${AppSession.userId}");
+
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/swipe');
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Login failed: ${response.statusCode}')),
@@ -75,14 +83,16 @@ class _LoginScreenState extends State<LoginScreen> {
           passwordController.clear();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Registration failed: ${response.statusCode}')),
+            SnackBar(
+              content: Text('Registration failed: ${response.statusCode}'),
+            ),
           );
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       setState(() => isLoading = false);
     }
@@ -111,157 +121,183 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         child: Center(
-  child: Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 20), // 👈 dit toevoegen
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 420),
-      child: Card(
-              color: Colors.white,
-              elevation: 12,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'SwipeStyle',
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        color: accent,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20,
+            ), // 👈 dit toevoegen
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Card(
+                color: Colors.white,
+                elevation: 12,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 26,
+                    vertical: 24,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'SwipeStyle',
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          color: accent,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),//verticale spacing tussen titel en subtitel
-                    const Text(
-                      'Trade clothes, Swipe style',
-                      style: TextStyle(color: Colors.black54),
-                    ),
-                    const SizedBox(height: 18),//nog meer spacing
-
-                    // Toggle (Login / Register)
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.black12.withOpacity(0.06),
-                        borderRadius: BorderRadius.circular(12),
+                      const SizedBox(
+                        height: 4,
+                      ), //verticale spacing tussen titel en subtitel
+                      const Text(
+                        'Trade clothes, Swipe style',
+                        style: TextStyle(color: Colors.black54),
                       ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _tabButton(
-                              text: 'Login',
-                              active: isLogin,
-                              onTap: () => setState(() => isLogin = true),
-                            ),
-                          ),
-                          Expanded(
-                            child: _tabButton(
-                              text: 'Register',
-                              active: !isLogin,
-                              onTap: () => setState(() => isLogin = false),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // Username (for both login and register)
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text('Username', style: TextStyle(fontWeight: FontWeight.w600)),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: usernameController,
-                      decoration: InputDecoration(
-                        hintText: 'your_username',
-                        border: OutlineInputBorder(
+                      const SizedBox(height: 18), //nog meer spacing
+                      // Toggle (Login / Register)
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.black12.withOpacity(0.06),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _tabButton(
+                                text: 'Login',
+                                active: isLogin,
+                                onTap: () => setState(() => isLogin = true),
+                              ),
+                            ),
+                            Expanded(
+                              child: _tabButton(
+                                text: 'Register',
+                                active: !isLogin,
+                                onTap: () => setState(() => isLogin = false),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
 
-                    const SizedBox(height: 14),
+                      const SizedBox(height: 18),
 
-                    // Email (only for register)
-                    if (!isLogin) ...[
+                      // Username (for both login and register)
                       const Align(
                         alignment: Alignment.centerLeft,
-                        child: Text('Email', style: TextStyle(fontWeight: FontWeight.w600)),
+                        child: Text(
+                          'Username',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
                       ),
                       const SizedBox(height: 6),
                       TextField(
-                        controller: emailController,
-                        keyboardType: TextInputType.emailAddress,
+                        controller: usernameController,
                         decoration: InputDecoration(
-                          hintText: 'you@example.com',
+                          hintText: 'your_username',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                    ],
-
-                    // Password
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text('Password', style: TextStyle(fontWeight: FontWeight.w600)),
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: passwordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        hintText: '••••••••',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                      ),
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 46,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: accent,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 14,
                           ),
                         ),
-                        child: isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : Text(isLogin ? 'Login' : 'Create account'),
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 14),
+
+                      // Email (only for register)
+                      if (!isLogin) ...[
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Email',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: InputDecoration(
+                            hintText: 'you@example.com',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 14,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                      ],
+
+                      // Password
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Password',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: passwordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          hintText: '••••••••',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 14,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 18),
+
+                      // Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 46,
+                        child: ElevatedButton(
+                          onPressed: isLoading ? null : submit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: accent,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : Text(isLogin ? 'Login' : 'Create account'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -271,7 +307,8 @@ class _LoginScreenState extends State<LoginScreen> {
     required bool active,
     required VoidCallback onTap,
   }) {
-    return InkWell( //inkwell zorgt ervoor dat iets clickable is
+    return InkWell(
+      //inkwell zorgt ervoor dat iets clickable is
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(

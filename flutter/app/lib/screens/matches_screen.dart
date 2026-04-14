@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 
 import '../models/match_item.dart';
 import '../widgets/app_bottom_nav.dart';
-
+import 'package:app/session.dart';
 
 
 class MatchesScreen extends StatefulWidget {
@@ -34,10 +34,13 @@ class _MatchesScreenState extends State<MatchesScreen> {
     return 'http://localhost:8000';
   }
 
+  late final String baseUrl = _getBaseUrl();
+  
+
   Future<void> fetchMatches() async {
     final baseUrl = _getBaseUrl();
     final response = await http.get(
-      Uri.parse('$baseUrl/matches/1'),
+      Uri.parse('$baseUrl/matches/${AppSession.userId}'),
     );
 
     if (response.statusCode == 200) {

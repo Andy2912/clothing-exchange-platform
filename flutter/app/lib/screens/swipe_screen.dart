@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/clothing_item.dart';
 import '../widgets/app_bottom_nav.dart';
+import 'package:app/session.dart';
 
 class SwipeScreen extends StatefulWidget {
   const SwipeScreen({super.key});
@@ -31,6 +32,8 @@ String _getBaseUrl() {
   return 'http://localhost:8000';
 }
 
+late final String baseUrl = _getBaseUrl();
+
 Future<void> sendSwipe({
   required int clothId,
   required String action,
@@ -40,7 +43,7 @@ Future<void> sendSwipe({
     Uri.parse('$baseUrl/swipe'),
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({
-      'swiper_user_id': 1,
+      'swiper_user_id': AppSession.userId,
       'swiped_cloth_id': clothId,
       'action': action,
     }),

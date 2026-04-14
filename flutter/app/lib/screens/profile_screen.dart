@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'my_items_screen.dart';
+import 'package:app/session.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -31,7 +32,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> fetchProfile() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/profile/1'),
+        Uri.parse('$baseUrl/profile/${AppSession.userId}'),
       );
 
       if (response.statusCode == 200) {
@@ -65,7 +66,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     try {
       final response = await http.put(
-        Uri.parse('$baseUrl/profile/1/update'),
+        Uri.parse('$baseUrl/profile/${AppSession.userId}/update'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'username': usernameController.text,
