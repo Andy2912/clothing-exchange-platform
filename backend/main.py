@@ -11,17 +11,22 @@ from sqlalchemy import text
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
+from fastapi import UploadFile, File
 
 class SwipeRequest(BaseModel):
     swiper_user_id: int
     swiped_cloth_id: int
     action: str # "like" or "dislike"
+    
+class ProfileUpdateRequest(BaseModel):
+    username: str
+    about_me: str
 
 app = FastAPI()
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 # CORS: laat Flutter Web toe
 app.add_middleware(
-    CORSMiddleware,
+    CORSMiddleware, 
     allow_origins=["*"],  # voor test ok
     allow_credentials=True,
     allow_methods=["*"],
@@ -39,18 +44,73 @@ def home():
 BASE_DIR = Path(__file__).resolve().parent
 PHOTO_PATH = BASE_DIR / "photo.jpg"
 
-# ✅ Base64 JSON
-@app.get("/photo")
-def get_photo_base64():
-    with open(PHOTO_PATH, "rb") as f:
-        encoded = base64.b64encode(f.read()).decode("utf-8")
-    return {"image": encoded}
+#profilepic
+from fastapi.staticfiles import StaticFiles
 
-@app.get("/photo")
-def get_photo():
-    with open(PHOTO_PATH, "rb") as f:
-        encoded = base64.b64encode(f.read()).decode("utf-8")
-    return {"image": encoded}
+app.mount("/profilePic", StaticFiles(directory="profilePic"), name="profilePic")
+
+import shutil
+@app.post("/upload-profile-pic")
+async def upload_profile_pic(file: UploadFile):
+    file_path = f"profilePic/{file.filename}"
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    return {"url": f"/profilePic/{file.filename}"}
+@app.get("/profile/{user_id}")
+
+def get_profile(user_id: int):
+    with engine.connect() as connection:
+        result = connection.execute(text("""
+            SELECT username, bio, profile_pic_url
+            FROM users
+            WHERE user_id = :user_id
+        """), {"user_id": user_id}).fetchone()
+
+        if not result:
+            return {"detail": "User not found"}
+
+        return {
+            "username": result.username,
+            "about_me": result.bio if result.bio else "",
+            "profile_picture": result.profile_pic_url if result.profile_pic_url else ""
+        }
+
+@app.put("/profile/{user_id}/update")
+def update_profile(user_id: int, profile: ProfileUpdateRequest):
+    with engine.connect() as connection:
+        result = connection.execute(text("""
+            UPDATE users
+            SET username = :username,
+                bio = :bio
+            WHERE user_id = :user_id
+        """), {
+            "username": profile.username,
+            "bio": profile.about_me,
+            "user_id": user_id
+        })
+
+        connection.commit()
+
+        check_user = connection.execute(text("""
+            SELECT username, bio, profile_pic_url
+            FROM users
+            WHERE user_id = :user_id
+        """), {
+            "user_id": user_id
+        }).fetchone()
+
+        if not check_user:
+            return {"detail": "User not found"}
+
+        return {
+            "username": check_user.username,
+            "about_me": check_user.bio if check_user.bio else "",
+            "profile_picture": check_user.profile_pic_url if check_user.profile_pic_url else ""
+        }
+
+
 
 @app.get("/items")
 def get_items():
@@ -85,6 +145,46 @@ def get_items():
             })
 
         return items
+    
+@app.get("/items/user/{user_id}")
+def get_user_items(user_id: int):
+    with engine.connect() as connection:
+        result = connection.execute(text("""
+            SELECT
+                cloth_id,
+                name,
+                description,
+                image_url,
+                category,
+                brand,
+                size,
+                condition_rating,
+                estimated_value,
+                is_available
+            FROM clothes
+            WHERE user_id = :user_id
+            ORDER BY cloth_id DESC
+        """), {
+            "user_id": user_id
+        })
+        
+        items = []
+        for row in result:
+            items.append({
+                "cloth_id": row.cloth_id,
+                "name": row.name,
+                "description": row.description,
+                "image_url": row.image_url,
+                "category": row.category,
+                "brand": row.brand,
+                "size": row.size,
+                "condition_rating": row.condition_rating,
+                "estimated_value": float(row.estimated_value) if row.estimated_value is not None else None,
+                "is_available": row.is_available
+            })
+            
+        return items
+
     
 @app.post("/swipe")
 def create_swipe(swipe: SwipeRequest):
@@ -334,3 +434,53 @@ def login(payload: LoginRequest):
             raise HTTPException(status_code=401, detail="invalid credentials")
         token = create_access_token({"sub": str(row.user_id)})
         return {"access_token": token, "token_type":"bearer","user_id":row.user_id}
+    
+class MessageRequest(BaseModel):
+    match_id: int
+    sender_user_id: int
+    content: str
+    
+@app.post("/messages")
+def send_message(message: MessageRequest):
+    with engine.connect() as connection:
+        connection.execute(text("""
+            INSERT INTO messages (match_id, sender_user_id, content)
+            VALUES (:match_id, :sender_user_id, :content)
+        """), {
+            "match_id": message.match_id,
+            "sender_user_id": message.sender_user_id,
+            "content": message.content
+        })
+
+        connection.commit()
+
+        return {
+            "message": "Message sent"
+        }
+    
+@app.get("/messages/{match_id}")
+def get_messages(match_id: int):
+    with engine.connect() as connection:
+        result = connection.execute(text("""
+            SELECT m.message_id, m.sender_user_id, u.username AS sender_username, m.content, m.sent_at
+            FROM messages m
+            JOIN users u ON u.user_id = m.sender_user_id
+            WHERE m.match_id = :match_id
+            ORDER BY m.sent_at ASC
+        """), {
+            "match_id": match_id
+        })
+
+        messages = []
+        for row in result:
+            messages.append({
+                "message_id": row.message_id,
+                "sender_user_id": row.sender_user_id,
+                "sender_username": row.sender_username,
+                "content": row.content,
+                "sent_at": str(row.sent_at)
+            })
+
+        return messages
+    
+    

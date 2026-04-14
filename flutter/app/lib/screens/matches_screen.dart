@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:app/screens/chat_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
@@ -86,13 +87,25 @@ class _MatchesScreenState extends State<MatchesScreen> {
                       ),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundImage: NetworkImage(match.matchedItemImageUrl),
+                          backgroundImage: NetworkImage("$baseUrl${match.matchedItemImageUrl}"),
                         ),
                         title: Text(match.otherUsername),
                         subtitle: Text(match.matchedItemName),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.purple,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text(
+                            "Message",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
                         onTap: () {
-                          // open chat screen
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(match_Id: match.matchId),
+                            ),
+                          );
                         },
                       ),
                     );

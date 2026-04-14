@@ -198,7 +198,7 @@ int currentIndex = 0;
   details:
       '${items[currentIndex].brand}, Size ${items[currentIndex].size}. ${items[currentIndex].conditionRating}.',
   owner: 'from database',
-  imageUrl: items[currentIndex].imageUrl,
+  imageUrl: "$baseUrl${items[currentIndex].imageUrl}",
 ),
 
                 ),

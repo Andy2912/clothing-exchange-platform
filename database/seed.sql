@@ -1,6 +1,7 @@
 USE swipestyle;
 GO
 
+DISABLE TRIGGER trg_swipes_after_insert ON swipes;
 -- ======================
 -- Seed User
 -- ======================
@@ -36,7 +37,7 @@ VALUES
     1,
     'Plaid Flannel Shirt',
     'Warm and comfortable flannel shirt.',
-    'http://10.0.2.2:8000/uploads/flannel.jpg',
+    '/uploads/flannel.jpg',
     'shirts',
     'Carhartt',
     'M',
@@ -45,10 +46,10 @@ VALUES
 ),
 
 (
-    1,
+    2,
     'Vintage Denim Jacket',
     'Classic denim jacket in good condition.',
-    'http://10.0.2.2:8000/uploads/denim.jpg',
+    '/uploads/denim.jpg',
     'jackets',
     'Levis',
     'L',
@@ -57,10 +58,10 @@ VALUES
 ),
 
 (
-    1,
+    3,
     'Nike Hoodie',
     'Oversized Nike hoodie.',
-    'http://10.0.2.2:8000/uploads/nikehoodie.jpg',
+    '/uploads/nikehoodie.jpg',
     'hoodies',
     'Nike',
     'XL',
@@ -69,10 +70,10 @@ VALUES
 ),
 
 (
-    1,
+    4,
     'Grey Sweatpants',
     'Comfortable sweatpants for everyday wear.',
-    'http://10.0.2.2:8000/uploads/sweatpants.jpg',
+    '/uploads/sweatpants.jpg',
     'pants',
     'Adidas',
     'M',
@@ -81,10 +82,10 @@ VALUES
 ),
 
 (
-    1,
+    5,
     'Basic White T-Shirt',
     'Simple cotton t-shirt.',
-    'http://10.0.2.2:8000/uploads/tshirt.jpg',
+    '/uploads/tshirt.jpg',
     'shirts',
     'Uniqlo',
     'M',
