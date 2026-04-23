@@ -59,7 +59,7 @@ Future<void> sendSwipe({
 Future<void> fetchItems() async {
   final baseUrl = _getBaseUrl();
   final response = await http.get(
-    Uri.parse('$baseUrl/items'),
+    Uri.parse('$baseUrl/items/${AppSession.userId}'),
   );
 
   if (response.statusCode == 200) {

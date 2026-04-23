@@ -15,6 +15,9 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  final ImagePicker _picker = ImagePicker();
+  bool isUploadingProfilePic = false;
+
   String username = "";
   String aboutMe = "";
   String profileImageUrl = "";
@@ -102,6 +105,71 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() {
       isSaving = false;
     });
+  }
+
+  Future<void> changeProfilePicture() async {
+    if (AppSession.userId == null) return;
+
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile == null) return;
+
+    setState(() {
+      isUploadingProfilePic = true;
+    });
+
+    try {
+      var uploadRequest = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/upload-profile-pic'),
+      );
+
+      uploadRequest.files.add(
+        await http.MultipartFile.fromPath('file', pickedFile.path),
+      );
+
+      final uploadResponse = await uploadRequest.send();
+      final uploadResponseBody = await uploadResponse.stream.bytesToString();
+
+      if (uploadResponse.statusCode != 200) {
+        throw Exception('Failed to upload image');
+      }
+
+      final uploadData = jsonDecode(uploadResponseBody);
+      final String uploadedImageUrl = uploadData['url'];
+
+      final saveResponse = await http.put(
+        Uri.parse('$baseUrl/profile/${AppSession.userId}/profile-pic'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'profile_picture': uploadedImageUrl}),
+      );
+
+      if (saveResponse.statusCode == 200) {
+        final data = jsonDecode(saveResponse.body);
+
+        setState(() {
+          profileImageUrl = data['profile_picture'] ?? uploadedImageUrl;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile picture updated')),
+        );
+      } else {
+        print(saveResponse.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save profile picture')),
+        );
+      }
+    } catch (e) {
+      print(e);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      setState(() {
+        isUploadingProfilePic = false;
+      });
+    }
   }
 
   @override
@@ -229,16 +297,49 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
 
                     const SizedBox(height: 20),
-
-                    CircleAvatar(
-                      radius: 75,
-                      backgroundImage: profileImageUrl.isNotEmpty
-                          ? NetworkImage("$baseUrl$profileImageUrl")
-                          : const AssetImage(
-                                  "assets/ProfilePicturePlaceholder.png",
-                                )
-                                as ImageProvider,
-                      
+                    //stack voor widgets op elkaar te plaatsen
+                    Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        CircleAvatar(
+                          radius: 75,
+                          backgroundImage: profileImageUrl.isNotEmpty
+                              ? NetworkImage("$baseUrl$profileImageUrl")
+                              : const AssetImage(
+                                      "assets/ProfilePicturePlaceholder.png",
+                                    )
+                                    as ImageProvider,
+                        ),
+                        GestureDetector(
+                          onTap: isUploadingProfilePic
+                              ? null
+                              : changeProfilePicture,
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFB326D1),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: isUploadingProfilePic
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.camera_alt,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                          ),
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 15),
@@ -276,7 +377,12 @@ class _ProfilePageState extends State<ProfilePage> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color.fromARGB(255, 191, 0, 255).withOpacity(0.08),
+                            color: const Color.fromARGB(
+                              255,
+                              191,
+                              0,
+                              255,
+                            ).withOpacity(0.08),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -293,7 +399,9 @@ class _ProfilePageState extends State<ProfilePage> {
                             )
                           : Text(
                               aboutMe.isNotEmpty ? aboutMe : "No bio yet",
-                              style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+                              style: const TextStyle(
+                                color: Color.fromARGB(255, 0, 0, 0),
+                              ),
                             ),
                     ),
 
@@ -445,8 +553,6 @@ class AccountPage extends StatelessWidget {
     );
   }
 }
-
-
 
 class MatchesPage extends StatelessWidget {
   const MatchesPage({super.key});

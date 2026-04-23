@@ -13,6 +13,9 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from fastapi import UploadFile, File
 
+class ProfilePicUpdateRequest(BaseModel):
+    profile_picture: str
+
 class SwipeRequest(BaseModel):
     swiper_user_id: int
     swiped_cloth_id: int
@@ -35,6 +38,38 @@ app.add_middleware(
 
 BASE_DIR = Path(__file__).resolve().parent
 PHOTO_PATH = BASE_DIR / "photo.jpg"
+
+#change profilepic
+@app.put("/profile/{user_id}/profile-pic")
+def update_profile_pic(user_id: int, payload: ProfilePicUpdateRequest):
+    with engine.connect() as connection:
+        result = connection.execute(text("""
+            UPDATE users
+            SET profile_pic_url = :profile_pic_url
+            WHERE user_id = :user_id
+        """), {
+            "profile_pic_url": payload.profile_picture,
+            "user_id": user_id
+        })
+
+        connection.commit()
+
+        check_user = connection.execute(text("""
+            SELECT username, bio, profile_pic_url
+            FROM users
+            WHERE user_id = :user_id
+        """), {
+            "user_id": user_id
+        }).fetchone()
+
+        if not check_user:
+            return {"detail": "User not found"}
+
+        return {
+            "username": check_user.username,
+            "about_me": check_user.bio if check_user.bio else "",
+            "profile_picture": check_user.profile_pic_url if check_user.profile_pic_url else ""
+        }
 
 @app.get("/")
 def home():
@@ -112,8 +147,8 @@ def update_profile(user_id: int, profile: ProfileUpdateRequest):
 
 
 
-@app.get("/items")
-def get_items():
+@app.get("/items/{user_id}")
+def get_items(user_id: int):
     with engine.connect() as connection:
         result = connection.execute(text("""
             SELECT 
@@ -128,7 +163,8 @@ def get_items():
                 estimated_value
             FROM clothes
             WHERE is_available = 1
-        """))
+              AND user_id != :user_id
+        """), {"user_id": user_id})
 
         items = []
         for row in result:
