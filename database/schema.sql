@@ -3,13 +3,13 @@ users: last_login, banned, phone nr
 clothes: need to show multiple pictures(how?)
 if disliked -> make sure items dont show up anymore*/
 
-
 -- =============================================
 -- Clothing Swap App Database Schema
 -- SQL Server / T-SQL
 -- Last improved: March 2025
 -- =============================================
-CREATE DATABASE swipestyle;
+IF DB_ID(N'swipestyle') IS NULL
+    CREATE DATABASE swipestyle;
 GO
 USE swipestyle;
 GO
@@ -32,7 +32,7 @@ CREATE TABLE users (
     profile_pic_url VARCHAR(255)  NULL,
     bio             VARCHAR(MAX)  NULL,
     created_at      DATETIME2(0)  NOT NULL DEFAULT GETDATE(),
-    updated_at      DATETIME2(0)  NOT NULL DEFAULT GETDATE()
+    updated_at      DATETIME2(0) NOT NULL DEFAULT GETDATE()
 );
 GO
 -- =============================================
@@ -72,7 +72,7 @@ CREATE TABLE swipes (
     swiped_cloth_id INT          NOT NULL,
     action          VARCHAR(10)  NOT NULL
         CONSTRAINT CHK_swipes_action
-        CHECK (action IN ('like', 'dislike', 'super_like')),  -- room for future features
+        CHECK (action IN ('like', 'dislike')),
     created_at      DATETIME2(0) NOT NULL DEFAULT GETDATE(),
     CONSTRAINT UQ_swipes UNIQUE (swiper_user_id, swiped_cloth_id),
     CONSTRAINT FK_swipes_swiper
@@ -92,36 +92,36 @@ CREATE TABLE matches (
     match_id    INT IDENTITY(1,1) PRIMARY KEY,
     user1_id    INT          NOT NULL,
     user2_id    INT          NOT NULL,
-    cloth1_id   INT          NULL,     
-    cloth2_id   INT          NULL,     
-    status      VARCHAR(20)  NOT NULL 
+    cloth1_id   INT          NULL,
+    cloth2_id   INT          NULL,
+    status      VARCHAR(20)  NOT NULL
         CONSTRAINT DF_matches_status DEFAULT 'active'
-        CONSTRAINT CHK_matches_status 
+        CONSTRAINT CHK_matches_status
         CHECK (status IN ('active', 'negotiating', 'declined', 'completed', 'archived')),
     created_at  DATETIME2(0) NOT NULL DEFAULT GETDATE(),
     updated_at  DATETIME2(0) NOT NULL DEFAULT GETDATE(),
 
     CONSTRAINT UQ_matches UNIQUE (user1_id, user2_id),
-    CONSTRAINT CK_user1_user2 CHECK (user1_id < user2_id),  
+    CONSTRAINT CK_user1_user2 CHECK (user1_id < user2_id),
 
-    CONSTRAINT FK_matches_user1 
+    CONSTRAINT FK_matches_user1
         FOREIGN KEY (user1_id) REFERENCES users(user_id)
         ON DELETE NO ACTION
         ON UPDATE NO ACTION,
 
-    CONSTRAINT FK_matches_user2 
+    CONSTRAINT FK_matches_user2
         FOREIGN KEY (user2_id) REFERENCES users(user_id)
         ON DELETE NO ACTION
         ON UPDATE NO ACTION,
 
-    CONSTRAINT FK_matches_cloth1 
+    CONSTRAINT FK_matches_cloth1
         FOREIGN KEY (cloth1_id) REFERENCES clothes(cloth_id)
-        ON DELETE NO ACTION          -- ← changed
+        ON DELETE NO ACTION
         ON UPDATE NO ACTION,
 
-    CONSTRAINT FK_matches_cloth2 
+    CONSTRAINT FK_matches_cloth2
         FOREIGN KEY (cloth2_id) REFERENCES clothes(cloth_id)
-        ON DELETE NO ACTION          -- ← changed
+        ON DELETE NO ACTION
         ON UPDATE NO ACTION
 );
 GO
@@ -196,39 +196,39 @@ GO
 -- =============================================
 -- TRIGGER: Create match when mutual like occurs
 -- =============================================
-CREATE OR ALTER TRIGGER trg_swipes_after_insert
-ON swipes
-AFTER INSERT
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    INSERT INTO matches (
-        user1_id, user2_id, 
-        cloth1_id, cloth2_id
-    )
-    SELECT DISTINCT
-        LEAST(i.swiper_user_id, c.owner_id),
-        GREATEST(i.swiper_user_id, c.owner_id),
-        i.swiped_cloth_id,                      -- the new like
-        rev.swiped_cloth_id                     -- the reverse like
-    FROM inserted i
-    CROSS APPLY (
-        SELECT user_id AS owner_id
-        FROM clothes 
-        WHERE cloth_id = i.swiped_cloth_id
-    ) c
-    INNER JOIN swipes rev
-        ON  rev.swiper_user_id = c.owner_id
-        AND rev.action         = 'like'
-        AND rev.swiped_cloth_id IN (
-            SELECT cloth_id FROM clothes WHERE user_id = i.swiper_user_id
-        )
-    WHERE i.action = 'like'
-      AND NOT EXISTS (
-          SELECT 1 FROM matches m
-          WHERE m.user1_id = LEAST(i.swiper_user_id, c.owner_id)
-            AND m.user2_id = GREATEST(i.swiper_user_id, c.owner_id)
-      );
-END;
-GO
+-- CREATE OR ALTER TRIGGER trg_swipes_after_insert
+-- ON swipes
+-- AFTER INSERT
+-- AS
+-- BEGIN
+--     SET NOCOUNT ON;
+--
+--     INSERT INTO matches (
+--         user1_id, user2_id, 
+--         cloth1_id, cloth2_id
+--     )
+--     SELECT DISTINCT
+--         LEAST(i.swiper_user_id, c.owner_id),
+--         GREATEST(i.swiper_user_id, c.owner_id),
+--         i.swiped_cloth_id,                      -- the new like
+--         rev.swiped_cloth_id                     -- the reverse like
+--     FROM inserted i
+--     CROSS APPLY (
+--         SELECT user_id AS owner_id
+--         FROM clothes 
+--         WHERE cloth_id = i.swiped_cloth_id
+--     ) c
+--     INNER JOIN swipes rev
+--         ON  rev.swiper_user_id = c.owner_id
+--         AND rev.action         = 'like'
+--         AND rev.swiped_cloth_id IN (
+--             SELECT cloth_id FROM clothes WHERE user_id = i.swiper_user_id
+--         )
+--     WHERE i.action = 'like'
+--       AND NOT EXISTS (
+--           SELECT 1 FROM matches m
+--           WHERE m.user1_id = LEAST(i.swiper_user_id, c.owner_id)
+--             AND m.user2_id = GREATEST(i.swiper_user_id, c.owner_id)
+--       );
+-- END;
+-- GO

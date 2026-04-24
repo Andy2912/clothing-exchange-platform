@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -56,10 +55,7 @@ class BackendImage extends StatelessWidget {
           );
         }
 
-        return Image.memory(
-          snap.data!,
-          fit: BoxFit.cover,
-        );
+        return Image.memory(snap.data!, fit: BoxFit.cover);
       },
     );
   }
