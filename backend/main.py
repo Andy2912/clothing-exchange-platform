@@ -12,6 +12,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from fastapi import UploadFile, File
+from fastapi import UploadFile, File, Form
 
 class ProfilePicUpdateRequest(BaseModel):
     profile_picture: str
@@ -519,4 +520,59 @@ def get_messages(match_id: int):
 
         return messages
     
+@app.post("/listings/")
+async def create_listing(
+    name: str = Form(...),
+    description: str = Form(...),
+    user_id: int = Form(...),
+    category: str = Form(...),
+    brand: str = Form(...),
+    size: str = Form(...),
+    condition_rating: str = Form(...),
+    image: UploadFile = File(...),
+):
+    file_path = f"uploads/{image.filename}"
     
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(image.file, buffer)
+        
+    image_url = f"/uploads/{image.filename}"
+    
+    with engine.connect() as connection:
+        connection.execute(text("""
+            INSERT INTO clothes (
+                user_id,
+                name,
+                description,
+                image_url,
+                category,
+                brand,
+                size,
+                condition_rating,
+                is_available
+            )
+            VALUES (
+                :user_id,
+                :name,
+                :description,
+                :image_url,
+                :category,
+                :brand,
+                :size,
+                :condition_rating,
+                1
+            )
+        """), {
+            "user_id": user_id,
+            "name": name,
+            "description": description,
+            "image_url": image_url,
+            "category": category,
+            "brand": brand,
+            "size": size,
+            "condition_rating": condition_rating
+        })
+
+        connection.commit()
+
+    return {"message": "Listing created"}

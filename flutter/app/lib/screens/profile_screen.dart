@@ -793,6 +793,12 @@ class _NewListingState extends State<NewListing> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
 
+  final TextEditingController brandController = TextEditingController();
+  final TextEditingController sizeController = TextEditingController();
+
+  String selectedCategory = "shirts";
+  String selectedCondition = "good";
+
   File? _image;
   final ImagePicker _picker = ImagePicker();
 
@@ -811,6 +817,8 @@ class _NewListingState extends State<NewListing> {
   Future<void> createListing() async {
     if (nameController.text.isEmpty ||
         descriptionController.text.isEmpty ||
+        brandController.text.isEmpty ||
+        sizeController.text.isEmpty ||
         _image == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill in all fields")),
@@ -830,7 +838,11 @@ class _NewListingState extends State<NewListing> {
 
       request.fields['name'] = nameController.text;
       request.fields['description'] = descriptionController.text;
-      request.fields['user_id'] = '1';
+      request.fields['category'] = selectedCategory;
+      request.fields['brand'] = brandController.text;
+      request.fields['size'] = sizeController.text;
+      request.fields['condition_rating'] = selectedCondition;
+      request.fields['user_id'] = AppSession.userId.toString();
 
       request.files.add(
         await http.MultipartFile.fromPath('image', _image!.path),
@@ -838,7 +850,7 @@ class _NewListingState extends State<NewListing> {
 
       var response = await request.send();
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         Navigator.pop(context); // go back after success
       } else {
         throw Exception('Failed to create listing');
@@ -928,6 +940,88 @@ class _NewListingState extends State<NewListing> {
                     border: OutlineInputBorder(),
                     hintText: "Item description",
                   ),
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              SizedBox(
+                width: 325,
+                child: TextField(
+                  controller: brandController,
+                  decoration: const InputDecoration(
+                    filled: true,
+                    fillColor: Color(0x7fffffff),
+                    border: OutlineInputBorder(),
+                    hintText: "Brand",
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              SizedBox(
+                width: 325,
+                child: TextField(
+                  controller: sizeController,
+                  decoration: const InputDecoration(
+                    filled: true,
+                    fillColor: Color(0x7fffffff),
+                    border: OutlineInputBorder(),
+                    hintText: "Size",
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              SizedBox(
+                width: 325,
+                child: DropdownButtonFormField<String>(
+                  value: selectedCategory,
+                  decoration: const InputDecoration(
+                    filled: true,
+                    fillColor: Color(0x7fffffff),
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: "shirts", child: Text("Shirts")),
+                    DropdownMenuItem(value: "jackets", child: Text("Jackets")),
+                    DropdownMenuItem(value: "hoodies", child: Text("Hoodies")),
+                    DropdownMenuItem(value: "pants", child: Text("Pants")),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      selectedCategory = value!;
+                    });
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 15),
+
+              SizedBox(
+                width: 325,
+                child: DropdownButtonFormField<String>(
+                  value: selectedCondition,
+                  decoration: const InputDecoration(
+                    filled: true,
+                    fillColor: Color(0x7fffffff),
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: "like_new",
+                      child: Text("Like new"),
+                    ),
+                    DropdownMenuItem(value: "good", child: Text("Good")),
+                    DropdownMenuItem(value: "worn", child: Text("Worn")),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      selectedCondition = value!;
+                    });
+                  },
                 ),
               ),
 

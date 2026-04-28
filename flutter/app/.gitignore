@@ -45,6 +45,12 @@ app.*.map.json
 /android/app/release
 
 # Flutter generated files
-**/generated_plugin_registrant.*
-**/generated_plugins.cmake
-**/GeneratedPluginRegistrant.*
+flutter/app/linux/flutter/generated_plugin_registrant.cc
+flutter/app/linux/flutter/generated_plugins.cmake
+flutter/app/macos/Flutter/GeneratedPluginRegistrant.swift
+flutter/app/windows/flutter/generated_plugin_registrant.cc
+flutter/app/windows/flutter/generated_plugins.cmake
+
+# User uploaded images
+backend/uploads/
+backend/profilePic/
