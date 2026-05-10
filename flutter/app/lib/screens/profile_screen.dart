@@ -62,6 +62,22 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<List<dynamic>> fetchHistory() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/trades/${AppSession.userId}'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.where((trade) => trade['status'] == 'completed').toList();
+      }
+    } catch (e) {
+      print(e);
+    }
+    return [];
+  }
+
   Future<void> saveProfile() async {
     setState(() {
       isSaving = true;
@@ -566,14 +582,117 @@ class MatchesPage extends StatelessWidget {
   }
 }
 
-class HistoryPage extends StatelessWidget {
+class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
+
+  @override
+  State<HistoryPage> createState() => _HistoryPageState();
+}
+
+class _HistoryPageState extends State<HistoryPage> {
+  final String baseUrl = "http://10.0.2.2:8000";
+  List<dynamic> trades = [];
+  bool isLoading = true;
+
+  Future<void> loadHistory() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/trades/${AppSession.userId}'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as List<dynamic>;
+
+        setState(() {
+          trades = data
+              .where((trade) => trade['status'] == 'completed')
+              .toList();
+          isLoading = false;
+        });
+        return;
+      }
+    } catch (e) {
+      print(e);
+    }
+
+    setState(() {
+      trades = [];
+      isLoading = false;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadHistory();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("History")),
-      body: const Center(child: Text("History Page")),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : trades.isEmpty
+          ? const Center(
+              child: Text(
+                "No completed exchanges yet.",
+                style: TextStyle(fontSize: 18),
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: trades.length,
+              itemBuilder: (context, index) {
+                final trade = trades[index];
+                final isUser1 = trade['user1_id'] == AppSession.userId;
+                final myItemName = isUser1
+                    ? trade['cloth1_name']
+                    : trade['cloth2_name'];
+                final otherItemName = isUser1
+                    ? trade['cloth2_name']
+                    : trade['cloth1_name'];
+                final otherUsername = isUser1
+                    ? trade['user2_username']
+                    : trade['user1_username'];
+                final completedDate =
+                    trade['created_at']?.toString().split(' ')[0] ?? '';
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFFB326D1),
+                      width: 2,
+                    ),
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Exchanged with $otherUsername",
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text("You gave: $myItemName"),
+                      const SizedBox(height: 6),
+                      Text("You received: $otherItemName"),
+                      const SizedBox(height: 12),
+                      Text(
+                        "Completed on: $completedDate",
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
     );
   }
 }

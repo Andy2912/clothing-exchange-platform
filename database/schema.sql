@@ -131,6 +131,7 @@ GO
 CREATE TABLE trades (
     trade_id       INT IDENTITY(1,1) PRIMARY KEY,
     match_id       INT          NOT NULL,
+    proposer_user_id INT        NOT NULL,
     trade_status   VARCHAR(20)  NOT NULL
         CONSTRAINT DF_trades_status DEFAULT 'pending'
         CONSTRAINT CHK_trades_status
@@ -145,6 +146,10 @@ CREATE TABLE trades (
     CONSTRAINT FK_trades_match
         FOREIGN KEY (match_id) REFERENCES matches(match_id)
         ON DELETE CASCADE
+        ON UPDATE NO ACTION,
+    CONSTRAINT FK_trades_proposer
+        FOREIGN KEY (proposer_user_id) REFERENCES users(user_id)
+        ON DELETE NO ACTION
         ON UPDATE NO ACTION
 );
 GO

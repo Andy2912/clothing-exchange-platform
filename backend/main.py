@@ -1,44 +1,53 @@
-import base64
-from pydantic import BaseModel
-from pathlib import Path
-from fastapi.staticfiles import StaticFiles
-from pathlib import Path
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
-from db import engine
-from sqlalchemy import text
-from passlib.context import CryptContext
-from jose import JWTError, jwt
-from datetime import datetime, timedelta
-from fastapi import UploadFile, File
-from fastapi import UploadFile, File, Form
+import shutil                                                       # File operations (copy/delete files for uploads)
+import bcrypt                                                       # Hash passwords securely
+from typing import Optional                                         # Type hints for optional parameters
+from datetime import datetime, timedelta                            # Date/time handling for tokens and timestamps
 
-class ProfilePicUpdateRequest(BaseModel):
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form  # Web framework and HTTP utilities
+from fastapi.middleware.cors import CORSMiddleware                  # Allows Flutter app to call this backend
+from fastapi.staticfiles import StaticFiles                         # Serve uploaded images from /uploads and /profilePic folders
+from jose import jwt                                                # Create and verify login tokens
+from pydantic import BaseModel                                      # Validate incoming request data (ensures correct types)
+from sqlalchemy import text                                         # Execute raw SQL queries safely
+
+from db import engine                                               # Database connection object
+
+# Data validation models (Pydantic)
+# These check that incoming data from Flutter has the correct type and structure
+
+class ProfilePicUpdateRequest(BaseModel):  # Validates profile picture URL updates
     profile_picture: str
 
-class SwipeRequest(BaseModel):
+class SwipeRequest(BaseModel):  # Validates swipe actions (like/dislike on items)
     swiper_user_id: int
     swiped_cloth_id: int
     action: str # "like" or "dislike"
     
-class ProfileUpdateRequest(BaseModel):
+class ProfileUpdateRequest(BaseModel):  # Validates profile edits (username, bio)
     username: str
     about_me: str
 
+class TradeRequest(BaseModel):  # Validates trade/deal proposals from chat
+    match_id: int
+    proposer_user_id: int
+    meeting_method: Optional[str] = None  # Optional shipping method
+
+class TradeShippingRequest(BaseModel):  # Validates shipping method updates
+    meeting_method: str
+
+# Initialize FastAPI app
 app = FastAPI()
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
-# CORS: laat Flutter Web toe
+
+# CORS configuration - allows Flutter app on Android emulator to reach this backend
 app.add_middleware(
     CORSMiddleware, 
-    allow_origins=["*"],  # voor test ok
+    allow_origins=["*"],  # Allow all origins (safe for development, restrict in production)
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, etc.)
+    allow_headers=["*"],  # Allow all headers
 )
 
-BASE_DIR = Path(__file__).resolve().parent
-PHOTO_PATH = BASE_DIR / "photo.jpg"
 
 #change profilepic
 @app.put("/profile/{user_id}/profile-pic")
@@ -76,16 +85,8 @@ def update_profile_pic(user_id: int, payload: ProfilePicUpdateRequest):
 def home():
     return {"message": "API is working"}
 
-
-BASE_DIR = Path(__file__).resolve().parent
-PHOTO_PATH = BASE_DIR / "photo.jpg"
-
-#profilepic
-from fastapi.staticfiles import StaticFiles
-
 app.mount("/profilePic", StaticFiles(directory="profilePic"), name="profilePic")
 
-import shutil
 @app.post("/upload-profile-pic")
 async def upload_profile_pic(file: UploadFile):
     file_path = f"profilePic/{file.filename}"
@@ -419,25 +420,34 @@ def get_matches(user_id: int):
 
         return matches
 
-# login + registration
-import bcrypt
-SECRET_KEY = "replace-with-random-secret"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+# ============= AUTHENTICATION & SECURITY =============
 
-# helpers
-def verify_password(plain, hashed):
+# JWT configuration for login tokens
+SECRET_KEY = "replace-with-random-secret"  # Secret key for signing tokens (should be random in production)
+ALGORITHM = "HS256"  # Algorithm for token encryption
+ACCESS_TOKEN_EXPIRE_MINUTES = 60  # How long login token lasts
+
+# Helper functions for password security
+def verify_password(plain, hashed):  # Check if plain password matches hashed password
     return bcrypt.checkpw(plain.encode('utf-8'), hashed.encode('utf-8'))
 
-def get_password_hash(password):
+def get_password_hash(password):  # Convert plain password to hash (for storage)
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-class RegisterRequest(BaseModel):
+# Helper function to create login tokens
+def create_access_token(data: dict):  # Generate JWT token that expires after ACCESS_TOKEN_EXPIRE_MINUTES
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+# ============= REGISTRATION & LOGIN ENDPOINTS =============
+
+class RegisterRequest(BaseModel):  # Validates new user signup data
     username: str
     email: str
     password: str
 
-# register endpoint
 @app.post("/register")
 def register(payload: RegisterRequest):
     with engine.connect() as conn:
@@ -450,17 +460,11 @@ def register(payload: RegisterRequest):
                      {"u": payload.username, "e": payload.email, "p": hashed})
         conn.commit()
         return {"message":"ok"}
-    
+
 # login endpoint 
-class LoginRequest(BaseModel):
+class LoginRequest(BaseModel):  # Validates login credentials
     username: str
     password: str
-
-def create_access_token(data: dict):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 @app.post("/login")
 def login(payload: LoginRequest):
@@ -471,8 +475,10 @@ def login(payload: LoginRequest):
             raise HTTPException(status_code=401, detail="invalid credentials")
         token = create_access_token({"sub": str(row.user_id)})
         return {"access_token": token, "token_type":"bearer","user_id":row.user_id}
+
+# ============= MESSAGES & CHAT =============
     
-class MessageRequest(BaseModel):
+class MessageRequest(BaseModel):  # Validates chat message data
     match_id: int
     sender_user_id: int
     content: str
@@ -576,3 +582,207 @@ async def create_listing(
         connection.commit()
 
     return {"message": "Listing created"}
+
+# ============= TRADES & DEAL PROPOSALS =============
+
+@app.post("/trades")
+def create_trade(trade: TradeRequest):  # Create a trade proposal when user proposes a deal in chat
+    with engine.connect() as connection:
+        # Check if trade already exists for this match
+        existing_trade = connection.execute(text("""
+            SELECT trade_id, trade_status, proposer_user_id
+            FROM trades
+            WHERE match_id = :match_id
+        """), {"match_id": trade.match_id}).fetchone()
+
+        if existing_trade:
+            if existing_trade.trade_status == 'pending':
+                return {"message": "Trade already pending"}
+            elif existing_trade.trade_status == 'agreed':
+                return {"message": "Trade already agreed"}
+            else:
+                # Update to pending if was cancelled or something
+                connection.execute(text("""
+                    UPDATE trades
+                    SET trade_status = 'pending', proposer_user_id = :proposer_user_id, meeting_method = :meeting_method, updated_at = GETDATE()
+                    WHERE trade_id = :trade_id
+                """), {"trade_id": existing_trade.trade_id, "proposer_user_id": trade.proposer_user_id, "meeting_method": trade.meeting_method})
+                connection.commit()
+                return {"message": "Trade proposal sent"}
+
+        # Create new trade
+        connection.execute(text("""
+            INSERT INTO trades (match_id, proposer_user_id, trade_status, meeting_method)
+            VALUES (:match_id, :proposer_user_id, 'pending', :meeting_method)
+        """), {"match_id": trade.match_id, "proposer_user_id": trade.proposer_user_id, "meeting_method": trade.meeting_method})
+
+        connection.commit()
+
+        return {"message": "Trade proposal sent"}
+
+@app.put("/trades/{trade_id}/accept")
+def accept_trade(trade_id: int):  # Receiver accepts the trade proposal
+    with engine.connect() as connection:
+        # Get the trade and match
+        trade = connection.execute(text("""
+            SELECT t.match_id, m.cloth1_id, m.cloth2_id
+            FROM trades t
+            JOIN matches m ON m.match_id = t.match_id
+            WHERE t.trade_id = :trade_id
+        """), {"trade_id": trade_id}).fetchone()
+
+        if not trade:
+            return {"detail": "Trade not found"}
+
+        # Update trade status to agreed and keep shipping step pending
+        connection.execute(text("""
+            UPDATE trades
+            SET trade_status = 'agreed', updated_at = GETDATE()
+            WHERE trade_id = :trade_id
+        """), {"trade_id": trade_id})
+
+        # Keep match active until receipt confirmation
+        connection.execute(text("""
+            UPDATE matches
+            SET status = 'negotiating', updated_at = GETDATE()
+            WHERE match_id = :match_id
+        """), {"match_id": trade.match_id})
+
+        # Set clothes unavailable
+        connection.execute(text("""
+            UPDATE clothes
+            SET is_available = 0, updated_at = GETDATE()
+            WHERE cloth_id IN (:cloth1_id, :cloth2_id)
+        """), {"cloth1_id": trade.cloth1_id, "cloth2_id": trade.cloth2_id})
+
+        connection.commit()
+
+        return {"message": "Trade accepted"}
+
+@app.put("/trades/{trade_id}/shipping")
+def update_shipping_method(trade_id: int, payload: TradeShippingRequest):  # Set shipping method (shipping/meetup/drop-off)
+    if payload.meeting_method not in ('shipping', 'meetup', 'drop-off'):
+        raise HTTPException(status_code=400, detail='Invalid shipping method')
+
+    with engine.connect() as connection:
+        existing = connection.execute(text("""
+            SELECT trade_id
+            FROM trades
+            WHERE trade_id = :trade_id
+        """), {"trade_id": trade_id}).fetchone()
+
+        if not existing:
+            raise HTTPException(status_code=404, detail='Trade not found')
+
+        connection.execute(text("""
+            UPDATE trades
+            SET meeting_method = :meeting_method, trade_status = 'shipping', updated_at = GETDATE()
+            WHERE trade_id = :trade_id
+        """), {"meeting_method": payload.meeting_method, "trade_id": trade_id})
+
+        connection.commit()
+
+        return {"message": "Shipping method set"}
+
+@app.put("/trades/{trade_id}/received")
+def mark_trade_received(trade_id: int):  # Mark item as received (completes the trade)
+    with engine.connect() as connection:
+        trade = connection.execute(text("""
+            SELECT t.match_id
+            FROM trades t
+            WHERE t.trade_id = :trade_id
+        """), {"trade_id": trade_id}).fetchone()
+
+        if not trade:
+            raise HTTPException(status_code=404, detail='Trade not found')
+
+        connection.execute(text("""
+            UPDATE trades
+            SET trade_status = 'completed', completed_at = GETDATE(), updated_at = GETDATE()
+            WHERE trade_id = :trade_id
+        """), {"trade_id": trade_id})
+
+        connection.execute(text("""
+            UPDATE matches
+            SET status = 'completed', updated_at = GETDATE()
+            WHERE match_id = :match_id
+        """), {"match_id": trade.match_id})
+
+        connection.commit()
+
+        return {"message": "Item received"}
+
+@app.put("/trades/{trade_id}/decline")
+def decline_trade(trade_id: int):  # Receiver declines the trade proposal (cancels it)
+    with engine.connect() as connection:
+        connection.execute(text("""
+            UPDATE trades
+            SET trade_status = 'cancelled', updated_at = GETDATE()
+            WHERE trade_id = :trade_id
+        """), {"trade_id": trade_id})
+
+        connection.commit()
+
+        return {"message": "Trade declined"}
+
+@app.get("/trades/{user_id}")
+def get_user_trades(user_id: int):
+    with engine.connect() as connection:
+        result = connection.execute(text("""
+            SELECT t.trade_id, t.match_id, t.trade_status, t.proposer_user_id, t.meeting_method, t.created_at, t.completed_at,
+                   m.user1_id, m.user2_id, m.cloth1_id, m.cloth2_id,
+                   u1.username as user1_username, u2.username as user2_username,
+                   c1.name as cloth1_name, c2.name as cloth2_name,
+                   c1.image_url as cloth1_image, c2.image_url as cloth2_image
+            FROM trades t
+            JOIN matches m ON m.match_id = t.match_id
+            JOIN users u1 ON u1.user_id = m.user1_id
+            JOIN users u2 ON u2.user_id = m.user2_id
+            JOIN clothes c1 ON c1.cloth_id = m.cloth1_id
+            JOIN clothes c2 ON c2.cloth_id = m.cloth2_id
+            WHERE m.user1_id = :user_id OR m.user2_id = :user_id
+            ORDER BY t.created_at DESC
+        """), {"user_id": user_id})
+
+        trades = []
+        for row in result:
+            trades.append({
+                "trade_id": row.trade_id,
+                "match_id": row.match_id,
+                "status": row.trade_status,
+                "proposer_user_id": row.proposer_user_id,
+                "meeting_method": row.meeting_method,
+                "created_at": str(row.created_at),
+                "completed_at": str(row.completed_at) if row.completed_at else None,
+                "user1_id": row.user1_id,
+                "user2_id": row.user2_id,
+                "user1_username": row.user1_username,
+                "user2_username": row.user2_username,
+                "cloth1_id": row.cloth1_id,
+                "cloth2_id": row.cloth2_id,
+                "cloth1_name": row.cloth1_name,
+                "cloth2_name": row.cloth2_name,
+                "cloth1_image": row.cloth1_image,
+                "cloth2_image": row.cloth2_image
+            })
+
+        return trades
+
+@app.get("/trades/match/{match_id}")
+def get_trade_for_match(match_id: int):
+    with engine.connect() as connection:
+        result = connection.execute(text("""
+            SELECT trade_id, trade_status, proposer_user_id, meeting_method
+            FROM trades
+            WHERE match_id = :match_id
+        """), {"match_id": match_id}).fetchone()
+
+        if result:
+            return {
+                "trade_id": result.trade_id,
+                "status": result.trade_status,
+                "proposer_user_id": result.proposer_user_id,
+                "meeting_method": result.meeting_method
+            }
+        else:
+            return None
