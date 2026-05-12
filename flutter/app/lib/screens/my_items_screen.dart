@@ -15,7 +15,7 @@ class _MyItemsPageState extends State<MyItemsPage> {
   final String baseUrl = "http://10.0.2.2:8000";
 
   List<dynamic> items = [];
-  bool isLoading = true;  
+  bool isLoading = true;
 
   Future<void> fetchMyItems() async {
     try {
@@ -60,17 +60,14 @@ class _MyItemsPageState extends State<MyItemsPage> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : items.isEmpty
-              ? const Center(
-                  child: Text(
-                    "No items yet",
-                    style: TextStyle(fontSize: 18),
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    final item = items[index];
+          ? const Center(
+              child: Text("No items yet", style: TextStyle(fontSize: 18)),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final item = items[index];
 
                     final imageUrl = item["image_url"] != null &&
                             item["image_url"].toString().startsWith("http")

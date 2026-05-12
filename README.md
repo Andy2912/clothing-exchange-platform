@@ -26,3 +26,8 @@ Front-end
 
     username: testuser1
     password: hashedpassword
+
+
+delete trade:
+    DELETE FROM [swipestyle].[dbo].[trades]
+    WHERE trade_id = 1;

@@ -18,7 +18,7 @@ class SwipeSwapApp extends StatelessWidget {
       title: 'SwipeSwap',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFB326D1)),
       ),
       initialRoute: '/',
       routes: {
