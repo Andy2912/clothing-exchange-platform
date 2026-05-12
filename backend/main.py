@@ -102,13 +102,15 @@ app.mount("/profilePic", StaticFiles(directory="profilePic"), name="profilePic")
 
 @app.post("/upload-profile-pic")
 async def upload_profile_pic(file: UploadFile):
-    file_path = f"profilePic/{file.filename}"
     
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-        
-    return {"url": f"/profilePic/{file.filename}"}
-@app.get("/profile/{user_id}")
+    upload_result = cloudinary.uploader.upload(
+        file.file,
+        folder="swipeswap/profile_pics"
+    )
+
+    image_url = upload_result["secure_url"]
+
+    return {"url": image_url}
 
 def get_profile(user_id: int):
     with engine.connect() as connection:

@@ -320,7 +320,11 @@ class _ProfilePageState extends State<ProfilePage> {
                         CircleAvatar(
                           radius: 75,
                           backgroundImage: profileImageUrl.isNotEmpty
-                              ? NetworkImage("$baseUrl$profileImageUrl")
+                              ? NetworkImage(
+                                  profileImageUrl.startsWith("http")
+                                      ? profileImageUrl
+                                      : "$baseUrl$profileImageUrl",
+                                )
                               : const AssetImage(
                                       "assets/ProfilePicturePlaceholder.png",
                                     )
