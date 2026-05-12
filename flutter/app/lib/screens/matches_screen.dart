@@ -80,6 +80,10 @@ class _MatchesScreenState extends State<MatchesScreen> {
                   itemCount: matches.length,
                   itemBuilder: (context, index) {
                     final match = matches[index];
+                    
+                    final imageUrl = match.matchedItemImageUrl.startsWith("http")
+                        ? match.matchedItemImageUrl
+                        : "$baseUrl${match.matchedItemImageUrl}";
 
                     return Container(
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -90,7 +94,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                       ),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundImage: NetworkImage("$baseUrl${match.matchedItemImageUrl}"),
+                          backgroundImage: NetworkImage(imageUrl),
                         ),
                         title: Text(match.otherUsername),
                         subtitle: Text(match.matchedItemName),

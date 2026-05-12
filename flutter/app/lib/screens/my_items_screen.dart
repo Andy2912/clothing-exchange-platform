@@ -72,6 +72,11 @@ class _MyItemsPageState extends State<MyItemsPage> {
                   itemBuilder: (context, index) {
                     final item = items[index];
 
+                    final imageUrl = item["image_url"] != null &&
+                            item["image_url"].toString().startsWith("http")
+                        ? item["image_url"].toString()
+                        : "$baseUrl${item["image_url"]}";
+
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
@@ -93,7 +98,7 @@ class _MyItemsPageState extends State<MyItemsPage> {
                             child: item["image_url"] != null &&
                                     item["image_url"].toString().isNotEmpty
                                 ? Image.network(
-                                    "$baseUrl${item["image_url"]}",
+                                    imageUrl,
                                     height: 220,
                                     width: double.infinity,
                                     fit: BoxFit.cover,

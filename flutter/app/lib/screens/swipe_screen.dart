@@ -93,7 +93,7 @@ int currentIndex = 0;
   setState(() {
     dragX = 0;
     if (currentIndex < items.length - 1) {
-      currentIndex++;
+      currentIndex++; 
     }
   });
 }
@@ -201,7 +201,9 @@ int currentIndex = 0;
   details:
       '${items[currentIndex].brand}, Size ${items[currentIndex].size}. ${items[currentIndex].conditionRating}.',
   owner: '',
-  imageUrl: "$baseUrl${items[currentIndex].imageUrl}",
+  imageUrl: items[currentIndex].imageUrl.startsWith("http")
+    ? items[currentIndex].imageUrl
+    : "$baseUrl${items[currentIndex].imageUrl}",
 ),
 
                 ),

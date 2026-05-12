@@ -13,6 +13,19 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from fastapi import UploadFile, File
 from fastapi import UploadFile, File, Form
+import cloudinary
+import cloudinary.uploader
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+print("Cloudinary URL loaded:", os.getenv("CLOUDINARY_URL") is not None)
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True
+)
 
 class ProfilePicUpdateRequest(BaseModel):
     profile_picture: str
@@ -165,6 +178,7 @@ def get_items(user_id: int):
             FROM clothes
             WHERE is_available = 1
               AND user_id != :user_id
+              ORDER BY cloth_id DESC
         """), {"user_id": user_id})
 
         items = []
@@ -531,12 +545,13 @@ async def create_listing(
     condition_rating: str = Form(...),
     image: UploadFile = File(...),
 ):
-    file_path = f"uploads/{image.filename}"
     
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(image.file, buffer)
-        
-    image_url = f"/uploads/{image.filename}"
+    upload_result = cloudinary.uploader.upload(
+        image.file,
+        folder="swipeswap/listings"
+    )
+    
+    image_url = upload_result["secure_url"]
     
     with engine.connect() as connection:
         connection.execute(text("""

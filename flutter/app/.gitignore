@@ -54,3 +54,5 @@ flutter/app/windows/flutter/generated_plugins.cmake
 # User uploaded images
 backend/uploads/
 backend/profilePic/
+
+backend/.env
