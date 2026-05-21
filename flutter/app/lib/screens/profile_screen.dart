@@ -79,18 +79,30 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> saveProfile() async {
+  setState(() {
+    isSaving = true;
+  });
+
+  if (usernameController.text.trim().isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Username cannot be empty")),
+    );
+
     setState(() {
-      isSaving = true;
+      isSaving = false;
     });
+
+    return;
+  }
 
     try {
       final response = await http.put(
         Uri.parse('$baseUrl/profile/${AppSession.userId}/update'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'username': usernameController.text,
-          'about_me': aboutMeController.text,
-        }),
+          'username': usernameController.text.trim(),
+          'about_me': aboutMeController.text.trim(),
+}),
       );
 
       if (response.statusCode == 200) {

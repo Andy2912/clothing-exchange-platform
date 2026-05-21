@@ -112,6 +112,7 @@ async def upload_profile_pic(file: UploadFile):
 
     return {"url": image_url}
 
+@app.get("/profile/{user_id}")
 def get_profile(user_id: int):
     with engine.connect() as connection:
         result = connection.execute(text("""
