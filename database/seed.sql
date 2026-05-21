@@ -28,10 +28,10 @@ INSERT INTO clothes (
     estimated_value
 )
 VALUES
-    (1, 'Plaid Flannel Shirt', 'Warm and comfortable flannel shirt.', '/uploads/flannel.jpg', 'shirts', 'Carhartt', 'M', 'good', 35),
-    (2, 'Vintage Denim Jacket', 'Classic denim jacket in good condition.', '/uploads/denim.jpg', 'jackets', 'Levis', 'L', 'good', 45),
-    (3, 'Nike Hoodie', 'Oversized Nike hoodie.', '/uploads/nikehoodie.jpg', 'hoodies', 'Nike', 'XL', 'like_new', 50),
-    (4, 'Grey Sweatpants', 'Comfortable sweatpants for everyday wear.', '/uploads/sweatpants.jpg', 'pants', 'Adidas', 'M', 'good', 25);
+    (1, 'Plaid Flannel Shirt', 'Warm and comfortable flannel shirt.', 'https://res.cloudinary.com/dhzlcplsa/image/upload/v1779349985/flannel_jzvwac.jpg', 'shirts', 'Carhartt', 'M', 'good', 35),
+    (2, 'Vintage Denim Jacket', 'Classic denim jacket in good condition.', 'https://res.cloudinary.com/dhzlcplsa/image/upload/v1779349986/denim_q39mo2.jpg', 'jackets', 'Levis', 'L', 'good', 45),
+    (3, 'Nike Hoodie', 'Oversized Nike hoodie.', 'https://res.cloudinary.com/dhzlcplsa/image/upload/v1779349984/nikehoodie_xf5ydo.jpg', 'hoodies', 'Nike', 'XL', 'like_new', 50),
+    (4, 'Grey Sweatpants', 'Comfortable sweatpants for everyday wear.', 'https://res.cloudinary.com/dhzlcplsa/image/upload/v1779349985/sweatpants_dddgsr.jpg', 'pants', 'Adidas', 'M', 'good', 25);
 GO
 
 -- ======================

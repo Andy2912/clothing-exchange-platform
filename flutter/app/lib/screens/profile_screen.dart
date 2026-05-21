@@ -21,11 +21,13 @@ class _ProfilePageState extends State<ProfilePage> {
   String username = "";
   String aboutMe = "";
   String profileImageUrl = "";
+  String city = "";
 
   bool isLoading = true;
 
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController aboutMeController = TextEditingController();
+  final TextEditingController cityController = TextEditingController();
 
   bool isEditing = false;
   bool isSaving = false;
@@ -45,9 +47,11 @@ class _ProfilePageState extends State<ProfilePage> {
           username = data['username'] ?? "";
           aboutMe = data['about_me'] ?? "";
           profileImageUrl = data['profile_picture'] ?? "";
+          city = data['city'] ?? "";
 
           usernameController.text = username;
           aboutMeController.text = aboutMe;
+          cityController.text = city;
 
           isLoading = false;
         });
@@ -79,21 +83,21 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> saveProfile() async {
-  setState(() {
-    isSaving = true;
-  });
-
-  if (usernameController.text.trim().isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Username cannot be empty")),
-    );
-
     setState(() {
-      isSaving = false;
+      isSaving = true;
     });
 
-    return;
-  }
+    if (usernameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Username cannot be empty")));
+
+      setState(() {
+        isSaving = false;
+      });
+
+      return;
+    }
 
     try {
       final response = await http.put(
@@ -102,15 +106,17 @@ class _ProfilePageState extends State<ProfilePage> {
         body: jsonEncode({
           'username': usernameController.text.trim(),
           'about_me': aboutMeController.text.trim(),
-}),
+          'city': cityController.text.trim(),
+        }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
         setState(() {
-          username = data['username'] ?? usernameController.text;
-          aboutMe = data['about_me'] ?? aboutMeController.text;
+          username = data['username'] ?? usernameController.text.trim();
+          aboutMe = data['about_me'] ?? aboutMeController.text.trim();
+          city = data['city'] ?? cityController.text.trim();
           isEditing = false;
         });
 
@@ -204,6 +210,8 @@ class _ProfilePageState extends State<ProfilePage> {
   void dispose() {
     usernameController.dispose();
     aboutMeController.dispose();
+    cityController.dispose();
+
     super.dispose();
   }
 
@@ -398,6 +406,28 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                     ),
 
+                    SizedBox(
+                      width: 325,
+                      child: isEditing
+                          ? TextField(
+                              controller: cityController,
+                              textAlign: TextAlign.center,
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color(0x7fffffff),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                hintText: "City",
+                              ),
+                            )
+                          : Text(
+                              city.isNotEmpty ? city : "No city set",
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                    ),
+
                     const SizedBox(height: 15),
 
                     Container(
@@ -436,6 +466,8 @@ class _ProfilePageState extends State<ProfilePage> {
                               ),
                             ),
                     ),
+
+                    const SizedBox(height: 15),
 
                     const SizedBox(height: 15),
 

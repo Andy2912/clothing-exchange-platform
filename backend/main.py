@@ -39,6 +39,8 @@ class SwipeRequest(BaseModel):  # Validates swipe actions (like/dislike on items
 class ProfileUpdateRequest(BaseModel):  # Validates profile edits (username, bio)
     username: str
     about_me: str
+    city: str
+    
 
 class TradeRequest(BaseModel):  # Validates trade/deal proposals from chat
     match_id: int
@@ -116,7 +118,7 @@ async def upload_profile_pic(file: UploadFile):
 def get_profile(user_id: int):
     with engine.connect() as connection:
         result = connection.execute(text("""
-            SELECT username, bio, profile_pic_url
+            SELECT username, bio, profile_pic_url, city
             FROM users
             WHERE user_id = :user_id
         """), {"user_id": user_id}).fetchone()
@@ -127,7 +129,9 @@ def get_profile(user_id: int):
         return {
             "username": result.username,
             "about_me": result.bio if result.bio else "",
-            "profile_picture": result.profile_pic_url if result.profile_pic_url else ""
+            "profile_picture": result.profile_pic_url if result.profile_pic_url else "",
+            "city": result.city if result.city else "",
+            
         }
 
 @app.put("/profile/{user_id}/update")
@@ -136,18 +140,20 @@ def update_profile(user_id: int, profile: ProfileUpdateRequest):
         result = connection.execute(text("""
             UPDATE users
             SET username = :username,
-                bio = :bio
+                bio = :bio,
+                city = :city
             WHERE user_id = :user_id
         """), {
             "username": profile.username,
             "bio": profile.about_me,
-            "user_id": user_id
+            "user_id": user_id,
+            "city": profile.city
         })
 
         connection.commit()
 
         check_user = connection.execute(text("""
-            SELECT username, bio, profile_pic_url
+            SELECT username, bio, profile_pic_url, city
             FROM users
             WHERE user_id = :user_id
         """), {
@@ -160,7 +166,8 @@ def update_profile(user_id: int, profile: ProfileUpdateRequest):
         return {
             "username": check_user.username,
             "about_me": check_user.bio if check_user.bio else "",
-            "profile_picture": check_user.profile_pic_url if check_user.profile_pic_url else ""
+            "profile_picture": check_user.profile_pic_url if check_user.profile_pic_url else "",
+            "city": check_user.city if check_user.city else "",
         }
 
 
