@@ -1,41 +1,47 @@
--Testing
-Host on local server:
-Back-end
-virtual env:
+SwipeStyle is a clothing exchange application built with Flutter, FastAPI and SQL Server.
+
+How to setup:
+
+---
+
+Database
+Run the SQL scripts inside the MicrosoftSQLServerManagment to create the database:
+
+schema.sql
+seed.sql
+
+---
+
+Run schema.sql first to create the database structure.
+After that run seed.sql to insert the demo data.
+
+Backend Setup
+Create virtual environment
 python -m venv .venv
 
-install requirements (backend)
+Activate virtual environment (Windows)
+.venv\Scripts\activate
+
+Install requirements
 pip install -r requirements.txt
 
-Backend starten:
+Start backend
+cd backend
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
-controles get backend:
-    cd /backend
- -> fastapi dev main.py
+Alternative FastAPI command
+fastapi dev main.py
 
+---
 
-Front-end
-    cd flutter/app
-- run flutter in chrome
-    flutter run -d chrome
-- run flutter in emulator
-    flutter emulators --launch emulator_id
-    flutter run
+Frontend Setup
+cd flutter/app
 
-    username: testuser1
-    password: hashedpassword
+Run in Android Emulator and install/open emulator
+flutter run
 
+---
 
-delete trade:
-    DELETE FROM [swipestyle].[dbo].[trades]
-    WHERE trade_id = 1;
-
-
-Error .env file:
-    if you get: An environment file is configured but terminal environment injection is disabled. Enable "python.terminal.useEnvFile" to use environment variables from .env files in terminals.
-
-    Press Ctrl + , to open Settings
-    Search for python.terminal.useEnvFile
-    Check the box to enable it
-    Restart your terminal
+Test Accounts
+Username: testuser{userNumber}
+Password: hashedpassword
