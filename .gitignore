@@ -1,0 +1,7 @@
+backend/.env
+backend/__pycache__/
+*.pyc
+
+flutter/app/linux/flutter/generated*
+flutter/app/windows/flutter/generated*
+flutter/app/macos/Flutter/Generated*
