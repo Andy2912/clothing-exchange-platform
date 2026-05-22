@@ -5,3 +5,7 @@ backend/__pycache__/
 flutter/app/linux/flutter/generated*
 flutter/app/windows/flutter/generated*
 flutter/app/macos/Flutter/Generated*
+venv/
+__pycache__/
+*.pyc
+.env
