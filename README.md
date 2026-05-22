@@ -1,3 +1,4 @@
+Andy Burgos, Jens Van Loock, Michael Van Elsen
 SwipeStyle is a clothing exchange application built with Flutter, FastAPI and SQL Server.
 
 How to setup:
